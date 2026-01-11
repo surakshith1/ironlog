@@ -25,7 +25,7 @@ export const AppNavigator = () => {
                     component={SettingsScreen}
                     options={{
                         headerShown: true,
-                        presentation: 'card',
+                        presentation: 'modal',
                         title: 'Settings'
                     }}
                 />
