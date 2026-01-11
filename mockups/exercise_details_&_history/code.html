@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>IronLog - Exercise Details</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;family=Roboto+Mono:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Theme Configuration -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#d68f71",
+                        "background-light": "#f8f7f6",
+                        "background-dark": "#1f1713",
+                        "surface-dark": "#2a221e",
+                        "surface-light": "#ffffff",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"],
+                        "mono": ["Roboto Mono", "SF Mono", "monospace"],
+                    },
+                    borderRadius: {
+                        "DEFAULT": "1rem",
+                        "lg": "1.5rem",
+                        "xl": "2rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark min-h-screen relative flex flex-col font-display antialiased text-gray-900 dark:text-gray-100 overflow-x-hidden selection:bg-primary selection:text-background-dark">
+<!-- Top Navigation -->
+<nav class="sticky top-0 z-50 w-full backdrop-blur-md bg-background-light/90 dark:bg-background-dark/90 border-b border-gray-200 dark:border-white/5 transition-colors duration-300">
+<div class="flex items-center justify-between px-4 py-3">
+<button class="flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-200 dark:hover:bg-white/10 transition-colors group">
+<span class="material-symbols-outlined text-gray-900 dark:text-primary transition-transform group-hover:-translate-x-1">arrow_back</span>
+</button>
+<h2 class="text-sm font-semibold uppercase tracking-widest text-gray-500 dark:text-gray-400">Library</h2>
+<button class="flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-200 dark:hover:bg-white/10 transition-colors">
+<span class="material-symbols-outlined text-gray-900 dark:text-white">more_horiz</span>
+</button>
+</div>
+</nav>
+<!-- Main Content -->
+<main class="flex-1 w-full max-w-lg mx-auto pb-24">
+<!-- Header Section -->
+<header class="px-5 pt-6 pb-2">
+<h1 class="text-3xl md:text-4xl font-extrabold tracking-tight leading-tight text-gray-900 dark:text-white mb-4">
+                Barbell Bench <span class="text-primary">Press</span>
+</h1>
+<!-- Tags/Chips -->
+<div class="flex flex-wrap gap-2 mb-6">
+<span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
+                    Pectorals
+                </span>
+<span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-200 dark:bg-surface-dark text-gray-700 dark:text-gray-300">
+                    Compound
+                </span>
+<span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-200 dark:bg-surface-dark text-gray-700 dark:text-gray-300">
+                    Push
+                </span>
+</div>
+<!-- Instructions Accordion -->
+<div class="group">
+<details class="group bg-surface-light dark:bg-surface-dark rounded-xl overflow-hidden border border-gray-200 dark:border-white/5 shadow-sm transition-all duration-300" open="">
+<summary class="flex cursor-pointer items-center justify-between p-4 list-none select-none hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+<div class="flex items-center gap-3">
+<span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/20 text-primary">
+<span class="material-symbols-outlined text-[16px]">info</span>
+</span>
+<span class="text-sm font-semibold text-gray-900 dark:text-white">Instructions</span>
+</div>
+<span class="material-symbols-outlined text-gray-400 group-open:rotate-180 transition-transform duration-300">expand_more</span>
+</summary>
+<div class="px-4 pb-4 pt-0">
+<p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed pl-[2.25rem]">
+                            Lie on your back on the bench with your eyes under the bar. Grip the bar slightly wider than shoulder-width. Unrack the bar, lower it to your mid-chest with control, and press it back up explosively to the starting position. Keep your feet planted and back arched slightly.
+                        </p>
+</div>
+</details>
+</div>
+</header>
+<!-- Divider -->
+<div class="h-6 w-full"></div>
+<!-- History Log Section -->
+<section class="px-5">
+<div class="flex items-center justify-between mb-4 px-1">
+<h3 class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">history</span>
+                    History Log
+                </h3>
+<div class="flex items-center gap-2">
+<span class="text-xs font-medium text-gray-500 uppercase tracking-wider">Unit: LBS</span>
+</div>
+</div>
+<!-- Data Table Container -->
+<div class="bg-surface-light dark:bg-surface-dark rounded-2xl overflow-hidden shadow-sm border border-gray-200 dark:border-white/5">
+<!-- Table Header -->
+<div class="grid grid-cols-4 gap-2 p-3 bg-gray-50 dark:bg-white/5 border-b border-gray-200 dark:border-white/5 text-xs font-semibold uppercase tracking-wider text-gray-500">
+<div class="col-span-1 pl-2">Date</div>
+<div class="col-span-1 text-center">Weight</div>
+<div class="col-span-1 text-center">Reps</div>
+<div class="col-span-1 text-right pr-2">1RM</div>
+</div>
+<!-- Log Items -->
+<div class="divide-y divide-gray-200 dark:divide-white/5">
+<!-- Entry 1 (Recent PR) -->
+<div class="grid grid-cols-4 gap-2 p-4 items-center hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group relative overflow-hidden">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-primary"></div> <!-- PR Indicator -->
+<div class="col-span-1 font-mono text-xs text-gray-500 dark:text-gray-400 pl-2">
+                            Oct 24
+                        </div>
+<div class="col-span-1 font-mono text-base font-bold text-gray-900 dark:text-white text-center">
+                            225
+                        </div>
+<div class="col-span-1 font-mono text-base text-gray-900 dark:text-white text-center flex justify-center items-center gap-1">
+                            5
+                        </div>
+<div class="col-span-1 font-mono text-sm font-medium text-primary text-right pr-2">
+                            262
+                        </div>
+</div>
+<!-- Entry 2 -->
+<div class="grid grid-cols-4 gap-2 p-4 items-center hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+<div class="col-span-1 font-mono text-xs text-gray-500 dark:text-gray-400 pl-2">
+                            Oct 24
+                        </div>
+<div class="col-span-1 font-mono text-base font-bold text-gray-900 dark:text-white text-center">
+                            225
+                        </div>
+<div class="col-span-1 font-mono text-base text-gray-900 dark:text-white text-center">
+                            4
+                        </div>
+<div class="col-span-1 font-mono text-sm text-gray-500 dark:text-gray-500 text-right pr-2">
+                            256
+                        </div>
+</div>
+<!-- Entry 3 -->
+<div class="grid grid-cols-4 gap-2 p-4 items-center hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+<div class="col-span-1 font-mono text-xs text-gray-500 dark:text-gray-400 pl-2">
+                            Oct 21
+                        </div>
+<div class="col-span-1 font-mono text-base font-bold text-gray-900 dark:text-white text-center">
+                            220
+                        </div>
+<div class="col-span-1 font-mono text-base text-gray-900 dark:text-white text-center">
+                            6
+                        </div>
+<div class="col-span-1 font-mono text-sm text-gray-500 dark:text-gray-500 text-right pr-2">
+                            255
+                        </div>
+</div>
+<!-- Entry 4 -->
+<div class="grid grid-cols-4 gap-2 p-4 items-center hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+<div class="col-span-1 font-mono text-xs text-gray-500 dark:text-gray-400 pl-2">
+                            Oct 18
+                        </div>
+<div class="col-span-1 font-mono text-base font-bold text-gray-900 dark:text-white text-center">
+                            215
+                        </div>
+<div class="col-span-1 font-mono text-base text-gray-900 dark:text-white text-center">
+                            8
+                        </div>
+<div class="col-span-1 font-mono text-sm text-gray-500 dark:text-gray-500 text-right pr-2">
+                            266
+                        </div>
+</div>
+<!-- Entry 5 -->
+<div class="grid grid-cols-4 gap-2 p-4 items-center hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+<div class="col-span-1 font-mono text-xs text-gray-500 dark:text-gray-400 pl-2">
+                            Oct 15
+                        </div>
+<div class="col-span-1 font-mono text-base font-bold text-gray-900 dark:text-white text-center">
+                            215
+                        </div>
+<div class="col-span-1 font-mono text-base text-gray-900 dark:text-white text-center">
+                            6
+                        </div>
+<div class="col-span-1 font-mono text-sm text-gray-500 dark:text-gray-500 text-right pr-2">
+                            249
+                        </div>
+</div>
+</div>
+<!-- Footer for Table -->
+<div class="p-3 bg-gray-50 dark:bg-white/5 border-t border-gray-200 dark:border-white/5 text-center">
+<button class="text-xs font-medium text-primary hover:text-white hover:underline transition-colors">View Full History</button>
+</div>
+</div>
+</section>
+<!-- Stats Overview Cards (Visual Interest) -->
+<section class="px-5 mt-8 mb-4">
+<h3 class="text-sm font-semibold uppercase tracking-widest text-gray-500 mb-3 px-1">Performance</h3>
+<div class="grid grid-cols-2 gap-3">
+<div class="bg-surface-light dark:bg-surface-dark p-4 rounded-2xl border border-gray-200 dark:border-white/5 flex flex-col justify-between h-24">
+<span class="text-xs text-gray-500">Personal Best</span>
+<div class="flex items-baseline gap-1">
+<span class="text-2xl font-mono font-bold text-white">225</span>
+<span class="text-xs font-mono text-primary">lbs</span>
+</div>
+</div>
+<div class="bg-surface-light dark:bg-surface-dark p-4 rounded-2xl border border-gray-200 dark:border-white/5 flex flex-col justify-between h-24">
+<span class="text-xs text-gray-500">Total Volume</span>
+<div class="flex items-baseline gap-1">
+<span class="text-2xl font-mono font-bold text-white">4.2k</span>
+<span class="text-xs font-mono text-gray-400">lbs</span>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Floating Action Button -->
+<div class="fixed bottom-6 right-6 z-40">
+<button class="flex items-center justify-center gap-2 h-14 pl-5 pr-6 rounded-full bg-primary text-background-dark shadow-lg hover:bg-[#c07b5e] hover:scale-105 active:scale-95 transition-all duration-300 font-bold">
+<span class="material-symbols-outlined">add</span>
+            Log Set
+        </button>
+</div>
+<!-- Background Decoration for Modern Feel -->
+<div class="fixed top-0 left-0 w-full h-96 bg-gradient-to-b from-primary/5 to-transparent -z-10 pointer-events-none"></div>
+</body></html>
