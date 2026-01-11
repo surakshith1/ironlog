@@ -39,22 +39,13 @@
   </head>
 <body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-white min-h-screen flex flex-col antialiased selection:bg-primary selection:text-white overflow-x-hidden">
 <!-- Header -->
-<header class="sticky top-0 z-20 flex items-center justify-between px-4 py-4 bg-background-light dark:bg-background-dark/95 backdrop-blur-sm transition-colors duration-200">
-<button class="flex items-center justify-center p-2 -ml-2 text-slate-600 dark:text-white/80 hover:bg-black/5 dark:hover:bg-white/10 rounded-full transition-colors">
-<span class="material-symbols-outlined text-[24px]">arrow_back_ios_new</span>
-</button>
-<h1 class="text-lg font-bold tracking-tight text-center flex-1 pr-8">Program Manager</h1>
-<div class="w-8"></div> <!-- Spacer for balance -->
+<!-- Header -->
+<header class="sticky top-0 z-20 flex items-center justify-center px-4 py-4 bg-background-light dark:bg-background-dark/95 backdrop-blur-sm transition-colors duration-200">
+<h1 class="text-lg font-bold tracking-tight text-center">Programs</h1>
 </header>
 <!-- Main Content -->
 <main class="flex-1 flex flex-col gap-6 px-4 pb-12 w-full max-w-md mx-auto">
-<!-- Import Action -->
-<section>
-<button class="w-full group flex items-center justify-center gap-2 h-12 bg-card-dark hover:bg-primary/20 border border-white/5 active:scale-[0.98] transition-all rounded-full cursor-pointer overflow-hidden shadow-sm">
-<span class="material-symbols-outlined text-primary group-hover:text-primary transition-colors text-[20px]">data_object</span>
-<span class="text-sm font-bold text-primary tracking-wide">Import JSON</span>
-</button>
-</section>
+
 <!-- Program List -->
 <section class="flex flex-col gap-4">
 <!-- Active Program Card -->
@@ -139,16 +130,15 @@
 </article>
 </section>
 <!-- Empty State / Footer Action -->
+<!-- Import Action -->
+<section class="mt-4">
+<button class="w-full group flex items-center justify-center gap-2 h-12 bg-card-dark hover:bg-primary/20 border border-white/5 active:scale-[0.98] transition-all rounded-full cursor-pointer overflow-hidden shadow-sm">
+<span class="material-symbols-outlined text-primary group-hover:text-primary transition-colors text-[20px]">data_object</span>
+<span class="text-sm font-bold text-primary tracking-wide">Import JSON</span>
+</button>
+</section>
 <div class="mt-4 flex flex-col items-center justify-center gap-2 pb-8">
-<p class="text-xs text-white/30 text-center">
-                Need more variety? Import custom plans via JSON.
-            </p>
 </div>
 </main>
-<!-- Floating Action Button (Optional per spec, but good for UX) -->
-<div class="fixed bottom-6 right-6 z-50">
-<button class="size-14 rounded-full bg-primary text-white shadow-xl shadow-primary/30 flex items-center justify-center hover:scale-105 active:scale-95 transition-all">
-<span class="material-symbols-outlined text-[28px]">add</span>
-</button>
-</div>
+
 </body></html>
