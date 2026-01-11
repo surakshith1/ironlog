@@ -27,7 +27,12 @@ export const MainNavigator = () => {
                     borderBottomWidth: 1,
                     borderBottomColor: theme.colors.surface,
                 },
-                headerTitle: '', // Hiding title to focus on Icon
+                headerTitleStyle: {
+                    color: theme.colors.text,
+                    fontSize: 18,
+                    fontWeight: 'bold',
+                },
+                headerTitleAlign: 'center',
                 headerLeft: () => (
                     <View style={{ paddingLeft: 16 }}>
                         <Image
