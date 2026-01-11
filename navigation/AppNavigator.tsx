@@ -1,7 +1,7 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { DesignSystemDemo } from '../screens/DesignSystemDemo';
+import { MainNavigator } from './MainNavigator';
 import { theme } from '../constants/theme';
 
 const Stack = createNativeStackNavigator();
@@ -15,7 +15,7 @@ export const AppNavigator = () => {
                     contentStyle: { backgroundColor: theme.colors.background }
                 }}
             >
-                <Stack.Screen name="DesignSystem" component={DesignSystemDemo} />
+                <Stack.Screen name="Main" component={MainNavigator} />
             </Stack.Navigator>
         </NavigationContainer>
     );
