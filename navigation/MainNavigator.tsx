@@ -1,17 +1,41 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { DesignSystemDemo } from '../screens/DesignSystemDemo';
 import { ProgramsScreen } from '../screens/ProgramsScreen';
 import { WorkoutsScreen } from '../screens/WorkoutsScreen';
+import { CurrentWorkoutScreen } from '../screens/CurrentWorkoutScreen';
 import { ExercisesScreen } from '../screens/ExercisesScreen';
 import { theme } from '../constants/theme';
 import { Home, Notebook, Dumbbell, Layers } from 'lucide-react-native';
 
-import { Alert, Image, TouchableOpacity, View } from 'react-native';
+import { Image, TouchableOpacity, View } from 'react-native';
 import { Settings } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 
 const Tab = createBottomTabNavigator();
+const WorkoutsStack = createNativeStackNavigator();
+
+// Stack navigator for Workouts tab
+function WorkoutsStackNavigator() {
+    return (
+        <WorkoutsStack.Navigator
+            screenOptions={{
+                headerShown: false, // We use tab navigator header
+            }}
+        >
+            <WorkoutsStack.Screen name="WorkoutsMain" component={WorkoutsScreen} />
+            <WorkoutsStack.Screen
+                name="CurrentWorkout"
+                component={CurrentWorkoutScreen}
+                options={{
+                    headerShown: false,
+                    animation: 'slide_from_right',
+                }}
+            />
+        </WorkoutsStack.Navigator>
+    );
+}
 
 export const MainNavigator = () => {
     const navigation = useNavigation<any>();
@@ -75,7 +99,7 @@ export const MainNavigator = () => {
             />
             <Tab.Screen
                 name="Workouts"
-                component={WorkoutsScreen}
+                component={WorkoutsStackNavigator}
                 options={{
                     tabBarIcon: ({ color, size }) => <Dumbbell color={color} size={size} />,
                     tabBarLabel: 'Workouts',
