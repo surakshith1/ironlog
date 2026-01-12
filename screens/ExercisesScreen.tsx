@@ -161,12 +161,12 @@ export function ExercisesScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: theme.colors.backgroundAlt,
+        backgroundColor: theme.colors.background,
     },
     searchContainer: {
         paddingHorizontal: theme.spacing.medium,
         paddingVertical: theme.spacing.small,
-        backgroundColor: theme.colors.backgroundAlt,
+        backgroundColor: theme.colors.background,
     },
     sectionHeader: {
         flexDirection: 'row',

@@ -56,7 +56,7 @@ export function ExerciseFilterBar({
 
 const styles = StyleSheet.create({
     container: {
-        backgroundColor: theme.colors.backgroundAlt,
+        backgroundColor: theme.colors.background,
     },
     scrollContent: {
         paddingHorizontal: theme.spacing.medium,
