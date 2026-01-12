@@ -12,6 +12,7 @@ web-build/
 # Native builds
 android/app/build/
 android/app/src/main/assets/
+ios/*
 ios/Pods/
 ios/build/
 *.xcworkspace
