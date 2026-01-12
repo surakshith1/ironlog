@@ -7,11 +7,17 @@ import { Button } from '../components/inputs/Button';
 import { FileCode, Plus } from 'lucide-react-native';
 import { ThemedText } from '../components/display/Typography';
 
+import { useWorkoutStore } from '../store/workoutStore';
+import { useNavigation } from '@react-navigation/native';
+
 export const ProgramsScreen = () => {
-    const [activeProgramId, setActiveProgramId] = useState<string>('1');
+    const activeProgramId = useWorkoutStore((state) => state.activeProgramId);
+    const setActiveProgram = useWorkoutStore((state) => state.setActiveProgram);
+    const navigation = useNavigation<any>();
 
     const handleSetActive = (id: string) => {
-        setActiveProgramId(id);
+        setActiveProgram(id);
+        navigation.navigate('Workouts');
     };
 
     const handleDelete = (id: string) => {

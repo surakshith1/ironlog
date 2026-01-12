@@ -1,18 +1,26 @@
 <!DOCTYPE html>
 
-<html class="dark" lang="en"><head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Active Workout Logger</title>
-<!-- Material Symbols -->
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
-<!-- Google Fonts: Inter and Roboto Mono (for monospace inputs) -->
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Roboto+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
-<!-- Tailwind CSS -->
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<!-- Theme Config -->
-<script id="tailwind-config">
+<html class="dark" lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Active Workout Logger</title>
+    <!-- Material Symbols -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <!-- Google Fonts: Inter and Roboto Mono (for monospace inputs) -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Roboto+Mono:wght@400;500&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <!-- Theme Config -->
+    <script id="tailwind-config">
         tailwind.config = {
             darkMode: "class",
             theme: {
@@ -28,175 +36,267 @@
                         "display": ["Inter", "sans-serif"],
                         "mono": ["Roboto Mono", "monospace"],
                     },
-                    borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+                    borderRadius: { "DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px" },
                 },
             },
         }
     </script>
-<style>
+    <style>
         /* Custom scrollbar hiding for horizontal tabs */
         .no-scrollbar::-webkit-scrollbar {
             display: none;
         }
+
         .no-scrollbar {
             -ms-overflow-style: none;
             scrollbar-width: none;
         }
     </style>
-<style>
-    body {
-      min-height: max(884px, 100dvh);
-    }
-  </style>
-  </head>
-<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white font-display antialiased overflow-hidden">
-<div class="relative flex h-screen w-full flex-col overflow-hidden max-w-md mx-auto shadow-2xl bg-background-light dark:bg-background-dark">
-<!-- Top App Bar -->
-<header class="flex items-center justify-between px-4 pt-12 pb-4 bg-background-light dark:bg-background-dark z-20">
-<button class="flex items-center justify-center size-10 rounded-full hover:bg-black/5 dark:hover:bg-white/10 text-slate-900 dark:text-white transition-colors">
-<span class="material-symbols-outlined text-2xl">arrow_back</span>
-</button>
-<div class="flex flex-col items-center">
-<h1 class="text-lg font-bold tracking-tight">Push A</h1>
-<div class="flex items-center gap-1 mt-0.5">
-<span class="size-2 rounded-full bg-primary animate-pulse"></span>
-<span class="text-xs font-mono font-medium text-primary">00:45:12</span>
-</div>
-</div>
-<button class="flex items-center justify-center size-10 rounded-full hover:bg-black/5 dark:hover:bg-white/10 text-slate-900 dark:text-white transition-colors">
-<span class="material-symbols-outlined text-2xl">more_horiz</span>
-</button>
-</header>
-<!-- Routine Navigator (Tabs) -->
-<div class="shrink-0 px-4 pb-4 border-b border-black/5 dark:border-white/5">
-<div class="flex gap-3 overflow-x-auto no-scrollbar py-1">
-<button class="shrink-0 px-5 py-2.5 rounded-full bg-primary text-white text-sm font-semibold shadow-lg shadow-primary/20">
+    <style>
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+</head>
+
+<body
+    class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white font-display antialiased overflow-hidden">
+    <div
+        class="relative flex h-screen w-full flex-col overflow-hidden max-w-md mx-auto shadow-2xl bg-background-light dark:bg-background-dark">
+        <!-- Top App Bar -->
+        <header
+            class="flex items-center justify-between px-4 pt-12 pb-4 bg-background-light dark:bg-background-dark z-20">
+            <button
+                class="flex items-center justify-center size-10 rounded-full hover:bg-black/5 dark:hover:bg-white/10 text-slate-900 dark:text-white transition-colors">
+                <span class="material-symbols-outlined text-2xl">arrow_back</span>
+            </button>
+            <div class="flex flex-col items-center">
+                <h1 class="text-lg font-bold tracking-tight">Push A</h1>
+                <!-- Timer hidden by default -->
+                <div id="active-timer" class="hidden items-center gap-1 mt-0.5">
+                    <span class="size-2 rounded-full bg-primary animate-pulse"></span>
+                    <span id="timer-display" class="text-xs font-mono font-medium text-primary">00:00:00</span>
+                </div>
+            </div>
+            <!-- Removed 3 dots button, kept empty div for spacing balance if needed, or just nothing -->
+            <div class="size-10"></div>
+        </header>
+        <!-- Routine Navigator (Tabs) -->
+        <div class="shrink-0 px-4 pb-4 border-b border-black/5 dark:border-white/5">
+            <div class="flex gap-3 overflow-x-auto no-scrollbar py-1">
+                <button
+                    class="shrink-0 px-5 py-2.5 rounded-full bg-primary text-white text-sm font-semibold shadow-lg shadow-primary/20">
                     Push A
                 </button>
-<button class="shrink-0 px-5 py-2.5 rounded-full bg-black/5 dark:bg-white/5 text-slate-600 dark:text-gray-400 text-sm font-semibold border border-transparent hover:border-primary/30 transition-all">
+                <button
+                    class="shrink-0 px-5 py-2.5 rounded-full bg-black/5 dark:bg-white/5 text-slate-600 dark:text-gray-400 text-sm font-semibold border border-transparent hover:border-primary/30 transition-all">
                     Pull B
                 </button>
-<button class="shrink-0 px-5 py-2.5 rounded-full bg-black/5 dark:bg-white/5 text-slate-600 dark:text-gray-400 text-sm font-semibold border border-transparent hover:border-primary/30 transition-all">
+                <button
+                    class="shrink-0 px-5 py-2.5 rounded-full bg-black/5 dark:bg-white/5 text-slate-600 dark:text-gray-400 text-sm font-semibold border border-transparent hover:border-primary/30 transition-all">
                     Legs
                 </button>
-<button class="shrink-0 px-5 py-2.5 rounded-full bg-black/5 dark:bg-white/5 text-slate-600 dark:text-gray-400 text-sm font-semibold border border-transparent hover:border-primary/30 transition-all">
+                <button
+                    class="shrink-0 px-5 py-2.5 rounded-full bg-black/5 dark:bg-white/5 text-slate-600 dark:text-gray-400 text-sm font-semibold border border-transparent hover:border-primary/30 transition-all">
                     Abs &amp; Cardio
                 </button>
-</div>
-</div>
-<!-- Scrollable Content -->
-<main class="flex-1 overflow-y-auto p-4 pb-32 space-y-6">
-<!-- Exercise Card 1 -->
-<div class="flex flex-col gap-4">
-<div class="flex items-center justify-between">
-<div>
-<h3 class="text-base font-bold text-slate-900 dark:text-white">Barbell Bench Press</h3>
-<p class="text-xs text-slate-500 dark:text-gray-400 mt-1 flex items-center gap-1">
-<span class="material-symbols-outlined text-[14px] opacity-70">history</span>
+            </div>
+        </div>
+        <!-- Scrollable Content -->
+        <main class="flex-1 overflow-y-auto p-4 pb-32 space-y-6">
+            <!-- Exercise Card 1 -->
+            <div class="flex flex-col gap-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-base font-bold text-slate-900 dark:text-white">Barbell Bench Press</h3>
+                        <p class="text-xs text-slate-500 dark:text-gray-400 mt-1 flex items-center gap-1">
+                            <span class="material-symbols-outlined text-[14px] opacity-70">history</span>
                             Last: 225lbs × 5
                         </p>
-</div>
-<button class="size-8 flex items-center justify-center rounded-full bg-black/5 dark:bg-white/5 text-primary">
-<span class="material-symbols-outlined text-lg">equalizer</span>
-</button>
-</div>
-<!-- Headers for inputs -->
-<div class="grid grid-cols-[32px_1fr_1fr_1fr_32px] gap-3 px-1">
-<span class="text-[10px] font-bold text-center text-slate-400 dark:text-gray-500 uppercase tracking-wider self-end">Set</span>
-<span class="text-[10px] font-bold text-center text-slate-400 dark:text-gray-500 uppercase tracking-wider self-end">lbs</span>
-<span class="text-[10px] font-bold text-center text-slate-400 dark:text-gray-500 uppercase tracking-wider self-end">Reps</span>
-<span class="text-[10px] font-bold text-center text-slate-400 dark:text-gray-500 uppercase tracking-wider self-end">RPE</span>
-<span></span>
-</div>
-<!-- Set Rows -->
-<div class="flex flex-col gap-3">
-<!-- Set 1 (Completed) -->
-<div class="grid grid-cols-[32px_1fr_1fr_1fr_32px] gap-3 items-center group">
-<div class="flex items-center justify-center size-8 rounded-full bg-primary/20 text-primary text-xs font-bold">1</div>
-<input class="w-full h-10 bg-black/5 dark:bg-white/5 border border-transparent focus:border-primary focus:ring-0 rounded-full text-center text-sm font-mono text-slate-900 dark:text-white placeholder-gray-500" placeholder="-" type="number" value="225"/>
-<input class="w-full h-10 bg-black/5 dark:bg-white/5 border border-transparent focus:border-primary focus:ring-0 rounded-full text-center text-sm font-mono text-slate-900 dark:text-white placeholder-gray-500" placeholder="-" type="number" value="5"/>
-<input class="w-full h-10 bg-black/5 dark:bg-white/5 border border-transparent focus:border-primary focus:ring-0 rounded-full text-center text-sm font-mono text-slate-900 dark:text-white placeholder-gray-500" placeholder="-" type="number" value="9"/>
-<button class="size-8 flex items-center justify-center rounded-full bg-primary text-white shadow-sm transition-transform active:scale-95">
-<span class="material-symbols-outlined text-lg">check</span>
-</button>
-</div>
-<!-- Set 2 (Active) -->
-<div class="grid grid-cols-[32px_1fr_1fr_1fr_32px] gap-3 items-center">
-<div class="flex items-center justify-center size-8 rounded-full bg-white dark:bg-card-dark text-slate-400 text-xs font-bold">2</div>
-<input class="w-full h-10 bg-white dark:bg-card-dark border-2 border-primary/50 focus:border-primary focus:ring-0 rounded-full text-center text-sm font-mono text-slate-900 dark:text-white placeholder-gray-500 shadow-sm" placeholder="-" type="number" value="225"/>
-<input autofocus="" class="w-full h-10 bg-white dark:bg-card-dark border-2 border-primary/50 focus:border-primary focus:ring-0 rounded-full text-center text-sm font-mono text-slate-900 dark:text-white placeholder-gray-500 shadow-sm" placeholder="-" type="number"/>
-<input class="w-full h-10 bg-white dark:bg-card-dark border border-transparent focus:border-primary focus:ring-0 rounded-full text-center text-sm font-mono text-slate-900 dark:text-white placeholder-gray-500" placeholder="-" type="number"/>
-<button class="size-8 flex items-center justify-center rounded-full bg-black/10 dark:bg-white/10 text-slate-400 dark:text-gray-500 hover:bg-primary hover:text-white transition-colors">
-<span class="material-symbols-outlined text-lg">check</span>
-</button>
-</div>
-<!-- Set 3 -->
-<div class="grid grid-cols-[32px_1fr_1fr_1fr_32px] gap-3 items-center opacity-50">
-<div class="flex items-center justify-center size-8 rounded-full bg-transparent text-slate-400 text-xs font-bold">3</div>
-<input class="w-full h-10 bg-black/5 dark:bg-white/5 border border-transparent focus:border-primary focus:ring-0 rounded-full text-center text-sm font-mono text-slate-900 dark:text-white placeholder-gray-500" placeholder="-" type="number"/>
-<input class="w-full h-10 bg-black/5 dark:bg-white/5 border border-transparent focus:border-primary focus:ring-0 rounded-full text-center text-sm font-mono text-slate-900 dark:text-white placeholder-gray-500" placeholder="-" type="number"/>
-<input class="w-full h-10 bg-black/5 dark:bg-white/5 border border-transparent focus:border-primary focus:ring-0 rounded-full text-center text-sm font-mono text-slate-900 dark:text-white placeholder-gray-500" placeholder="-" type="number"/>
-<button class="size-8 flex items-center justify-center rounded-full bg-black/5 dark:bg-white/5 text-slate-600 dark:text-gray-500">
-</button>
-</div>
-<button class="flex items-center gap-2 mt-2 ml-1 text-xs font-bold text-primary hover:text-primary/80 uppercase tracking-wide">
-<span class="material-symbols-outlined text-base">add</span>
+                    </div>
+                    <button
+                        class="size-8 flex items-center justify-center rounded-full bg-black/5 dark:bg-white/5 text-primary">
+                        <span class="material-symbols-outlined text-lg">equalizer</span>
+                    </button>
+                </div>
+                <!-- Headers for inputs -->
+                <!-- Removed RPE column -->
+                <div class="grid grid-cols-[32px_1fr_1fr_32px] gap-3 px-1">
+                    <span
+                        class="text-[10px] font-bold text-center text-slate-400 dark:text-gray-500 uppercase tracking-wider self-end">Set</span>
+                    <span
+                        class="text-[10px] font-bold text-center text-slate-400 dark:text-gray-500 uppercase tracking-wider self-end">lbs</span>
+                    <span
+                        class="text-[10px] font-bold text-center text-slate-400 dark:text-gray-500 uppercase tracking-wider self-end">Reps</span>
+                    <span></span>
+                </div>
+                <!-- Set Rows -->
+                <div class="flex flex-col gap-3">
+                    <!-- Set 1 (Completed) -->
+                    <div class="grid grid-cols-[32px_1fr_1fr_32px] gap-3 items-center group">
+                        <div
+                            class="flex items-center justify-center size-8 rounded-full bg-primary/20 text-primary text-xs font-bold">
+                            1</div>
+                        <input
+                            class="w-full h-10 bg-black/5 dark:bg-white/5 border border-transparent focus:border-primary focus:ring-0 rounded-full text-center text-sm font-mono text-slate-900 dark:text-white placeholder-gray-500"
+                            placeholder="-" type="number" value="225" />
+                        <input
+                            class="w-full h-10 bg-black/5 dark:bg-white/5 border border-transparent focus:border-primary focus:ring-0 rounded-full text-center text-sm font-mono text-slate-900 dark:text-white placeholder-gray-500"
+                            placeholder="-" type="number" value="5" />
+                        <button
+                            class="size-8 flex items-center justify-center rounded-full bg-primary text-white shadow-sm transition-transform active:scale-95">
+                            <span class="material-symbols-outlined text-lg">check</span>
+                        </button>
+                    </div>
+                    <!-- Set 2 (Active) -->
+                    <div class="grid grid-cols-[32px_1fr_1fr_32px] gap-3 items-center">
+                        <div
+                            class="flex items-center justify-center size-8 rounded-full bg-white dark:bg-card-dark text-slate-400 text-xs font-bold">
+                            2</div>
+                        <input
+                            class="w-full h-10 bg-white dark:bg-card-dark border-2 border-primary/50 focus:border-primary focus:ring-0 rounded-full text-center text-sm font-mono text-slate-900 dark:text-white placeholder-gray-500 shadow-sm"
+                            placeholder="-" type="number" value="225" />
+                        <input autofocus=""
+                            class="w-full h-10 bg-white dark:bg-card-dark border-2 border-primary/50 focus:border-primary focus:ring-0 rounded-full text-center text-sm font-mono text-slate-900 dark:text-white placeholder-gray-500 shadow-sm"
+                            placeholder="-" type="number" />
+                        <button
+                            class="size-8 flex items-center justify-center rounded-full bg-black/10 dark:bg-white/10 text-slate-400 dark:text-gray-500 hover:bg-primary hover:text-white transition-colors">
+                            <span class="material-symbols-outlined text-lg">check</span>
+                        </button>
+                    </div>
+                    <!-- Set 3 -->
+                    <div class="grid grid-cols-[32px_1fr_1fr_32px] gap-3 items-center opacity-50">
+                        <div
+                            class="flex items-center justify-center size-8 rounded-full bg-transparent text-slate-400 text-xs font-bold">
+                            3</div>
+                        <input
+                            class="w-full h-10 bg-black/5 dark:bg-white/5 border border-transparent focus:border-primary focus:ring-0 rounded-full text-center text-sm font-mono text-slate-900 dark:text-white placeholder-gray-500"
+                            placeholder="-" type="number" />
+                        <input
+                            class="w-full h-10 bg-black/5 dark:bg-white/5 border border-transparent focus:border-primary focus:ring-0 rounded-full text-center text-sm font-mono text-slate-900 dark:text-white placeholder-gray-500"
+                            placeholder="-" type="number" />
+                        <button
+                            class="size-8 flex items-center justify-center rounded-full bg-black/5 dark:bg-white/5 text-slate-600 dark:text-gray-500">
+                        </button>
+                    </div>
+                    <button
+                        class="flex items-center gap-2 mt-2 ml-1 text-xs font-bold text-primary hover:text-primary/80 uppercase tracking-wide">
+                        <span class="material-symbols-outlined text-base">add</span>
                         Add Set
                     </button>
-</div>
-</div>
-<div class="h-px w-full bg-black/5 dark:bg-white/5"></div>
-<!-- Exercise Card 2 -->
-<div class="flex flex-col gap-4">
-<div class="flex items-center justify-between">
-<div>
-<h3 class="text-base font-bold text-slate-900 dark:text-white">Incline Dumbbell Press</h3>
-<p class="text-xs text-slate-500 dark:text-gray-400 mt-1 flex items-center gap-1">
-<span class="material-symbols-outlined text-[14px] opacity-70">history</span>
+                </div>
+            </div>
+            <div class="h-px w-full bg-black/5 dark:bg-white/5"></div>
+            <!-- Exercise Card 2 -->
+            <div class="flex flex-col gap-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-base font-bold text-slate-900 dark:text-white">Incline Dumbbell Press</h3>
+                        <p class="text-xs text-slate-500 dark:text-gray-400 mt-1 flex items-center gap-1">
+                            <span class="material-symbols-outlined text-[14px] opacity-70">history</span>
                             Last: 80lbs × 10
                         </p>
-</div>
-<button class="size-8 flex items-center justify-center rounded-full bg-black/5 dark:bg-white/5 text-primary">
-<span class="material-symbols-outlined text-lg">equalizer</span>
-</button>
-</div>
-<!-- Set Rows -->
-<div class="flex flex-col gap-3">
-<div class="grid grid-cols-[32px_1fr_1fr_1fr_32px] gap-3 items-center">
-<div class="flex items-center justify-center size-8 rounded-full bg-white dark:bg-card-dark text-slate-400 text-xs font-bold">1</div>
-<input class="w-full h-10 bg-black/5 dark:bg-white/5 border border-transparent focus:border-primary focus:ring-0 rounded-full text-center text-sm font-mono text-slate-900 dark:text-white placeholder-gray-500" placeholder="-" type="number" value="80"/>
-<input class="w-full h-10 bg-black/5 dark:bg-white/5 border border-transparent focus:border-primary focus:ring-0 rounded-full text-center text-sm font-mono text-slate-900 dark:text-white placeholder-gray-500" placeholder="-" type="number"/>
-<input class="w-full h-10 bg-black/5 dark:bg-white/5 border border-transparent focus:border-primary focus:ring-0 rounded-full text-center text-sm font-mono text-slate-900 dark:text-white placeholder-gray-500" placeholder="-" type="number"/>
-<button class="size-8 flex items-center justify-center rounded-full bg-black/10 dark:bg-white/10 text-slate-400 dark:text-gray-500 hover:bg-primary hover:text-white transition-colors">
-<span class="material-symbols-outlined text-lg">check</span>
-</button>
-</div>
-<div class="grid grid-cols-[32px_1fr_1fr_1fr_32px] gap-3 items-center">
-<div class="flex items-center justify-center size-8 rounded-full bg-white dark:bg-card-dark text-slate-400 text-xs font-bold">2</div>
-<input class="w-full h-10 bg-black/5 dark:bg-white/5 border border-transparent focus:border-primary focus:ring-0 rounded-full text-center text-sm font-mono text-slate-900 dark:text-white placeholder-gray-500" placeholder="-" type="number" value="80"/>
-<input class="w-full h-10 bg-black/5 dark:bg-white/5 border border-transparent focus:border-primary focus:ring-0 rounded-full text-center text-sm font-mono text-slate-900 dark:text-white placeholder-gray-500" placeholder="-" type="number"/>
-<input class="w-full h-10 bg-black/5 dark:bg-white/5 border border-transparent focus:border-primary focus:ring-0 rounded-full text-center text-sm font-mono text-slate-900 dark:text-white placeholder-gray-500" placeholder="-" type="number"/>
-<button class="size-8 flex items-center justify-center rounded-full bg-black/10 dark:bg-white/10 text-slate-400 dark:text-gray-500 hover:bg-primary hover:text-white transition-colors">
-<span class="material-symbols-outlined text-lg">check</span>
-</button>
-</div>
-</div>
-</div>
-<!-- Spacer for Footer -->
-<div class="h-24"></div>
-</main>
-<!-- Fixed Footer -->
-<footer class="absolute bottom-0 w-full p-4 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md border-t border-black/5 dark:border-white/5 z-30">
-<div class="flex gap-4 items-center">
-<button class="flex flex-col items-center justify-center h-14 w-16 shrink-0 rounded-2xl bg-black/5 dark:bg-white/5 text-slate-900 dark:text-white hover:bg-black/10 dark:hover:bg-white/10 transition-colors">
-<span class="material-symbols-outlined">timer</span>
-<span class="text-[10px] font-medium mt-0.5">Rest</span>
-</button>
-<button class="flex-1 h-14 flex items-center justify-center gap-2 rounded-full bg-white text-black text-base font-bold shadow-lg hover:bg-gray-100 transition-colors">
-                    Finish Workout
-                    <span class="material-symbols-outlined">check_circle</span>
-</button>
-</div>
-</footer>
-</div>
-</body></html>
+                    </div>
+                    <button
+                        class="size-8 flex items-center justify-center rounded-full bg-black/5 dark:bg-white/5 text-primary">
+                        <span class="material-symbols-outlined text-lg">equalizer</span>
+                    </button>
+                </div>
+                <!-- Set Rows -->
+                <div class="flex flex-col gap-3">
+                    <div class="grid grid-cols-[32px_1fr_1fr_32px] gap-3 items-center">
+                        <div
+                            class="flex items-center justify-center size-8 rounded-full bg-white dark:bg-card-dark text-slate-400 text-xs font-bold">
+                            1</div>
+                        <input
+                            class="w-full h-10 bg-black/5 dark:bg-white/5 border border-transparent focus:border-primary focus:ring-0 rounded-full text-center text-sm font-mono text-slate-900 dark:text-white placeholder-gray-500"
+                            placeholder="-" type="number" value="80" />
+                        <input
+                            class="w-full h-10 bg-black/5 dark:bg-white/5 border border-transparent focus:border-primary focus:ring-0 rounded-full text-center text-sm font-mono text-slate-900 dark:text-white placeholder-gray-500"
+                            placeholder="-" type="number" />
+                        <button
+                            class="size-8 flex items-center justify-center rounded-full bg-black/10 dark:bg-white/10 text-slate-400 dark:text-gray-500 hover:bg-primary hover:text-white transition-colors">
+                            <span class="material-symbols-outlined text-lg">check</span>
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-[32px_1fr_1fr_32px] gap-3 items-center">
+                        <div
+                            class="flex items-center justify-center size-8 rounded-full bg-white dark:bg-card-dark text-slate-400 text-xs font-bold">
+                            2</div>
+                        <input
+                            class="w-full h-10 bg-black/5 dark:bg-white/5 border border-transparent focus:border-primary focus:ring-0 rounded-full text-center text-sm font-mono text-slate-900 dark:text-white placeholder-gray-500"
+                            placeholder="-" type="number" value="80" />
+                        <input
+                            class="w-full h-10 bg-black/5 dark:bg-white/5 border border-transparent focus:border-primary focus:ring-0 rounded-full text-center text-sm font-mono text-slate-900 dark:text-white placeholder-gray-500"
+                            placeholder="-" type="number" />
+                        <button
+                            class="size-8 flex items-center justify-center rounded-full bg-black/10 dark:bg-white/10 text-slate-400 dark:text-gray-500 hover:bg-primary hover:text-white transition-colors">
+                            <span class="material-symbols-outlined text-lg">check</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <!-- Spacer for Footer -->
+            <div class="h-24"></div>
+        </main>
+        <!-- Fixed Footer -->
+        <footer
+            class="absolute bottom-0 w-full p-4 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md border-t border-black/5 dark:border-white/5 z-30">
+            <div class="flex gap-4 items-center">
+                <!-- Rest Button Removed -->
+                <button id="action-btn" onclick="toggleWorkout()"
+                    class="flex-1 h-14 flex items-center justify-center gap-2 rounded-full bg-primary text-white text-base font-bold shadow-lg hover:bg-primary/90 transition-colors">
+                    Start Workout
+                    <span id="action-icon" class="material-symbols-outlined">play_arrow</span>
+                </button>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        let isWorkoutActive = false;
+        let timerInterval;
+        let seconds = 0;
+
+        function toggleWorkout() {
+            const btn = document.getElementById('action-btn');
+            const icon = document.getElementById('action-icon');
+            const timerContainer = document.getElementById('active-timer');
+            const timerDisplay = document.getElementById('timer-display');
+
+            if (!isWorkoutActive) {
+                // Start
+                isWorkoutActive = true;
+                timerContainer.classList.remove('hidden');
+                timerContainer.classList.add('flex');
+
+                // Start Timer
+                timerInterval = setInterval(() => {
+                    seconds++;
+                    const h = Math.floor(seconds / 3600);
+                    const m = Math.floor((seconds % 3600) / 60);
+                    const s = seconds % 60;
+                    timerDisplay.innerText =
+                        (h > 0 ? h.toString().padStart(2, '0') + ':' : '') +
+                        m.toString().padStart(2, '0') + ':' +
+                        s.toString().padStart(2, '0');
+                }, 1000);
+
+                // Update Start Button to Finish Button
+                btn.innerHTML = 'Finish Workout <span class="material-symbols-outlined">check_circle</span>';
+                // Change style to white button with black text
+                btn.classList.remove('bg-primary', 'text-white', 'hover:bg-primary/90');
+                btn.classList.add('bg-white', 'text-black', 'hover:bg-gray-100');
+
+            } else {
+                // Finish
+                if (confirm("Finish workout?")) {
+                    clearInterval(timerInterval);
+                    location.reload();
+                }
+            }
+        }
+    </script>
+</body>
+
+</html>

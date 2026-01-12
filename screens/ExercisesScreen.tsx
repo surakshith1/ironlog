@@ -4,15 +4,23 @@ import { theme } from '../constants/theme';
 import { SearchBar } from '../components/inputs/SearchBar';
 import { ExerciseFilterBar } from '../components/business/ExerciseFilterBar';
 import { ExerciseListItem } from '../components/display/ExerciseListItem';
+import { ExerciseDetailModal } from '../components/display/ExerciseDetailModal';
+import { ExerciseHistoryModal } from '../components/display/ExerciseHistoryModal';
 import {
     searchExercises,
     getUniqueMuscles,
 } from '../api/services/exerciseService';
+import { getExerciseHistory, getExerciseStats } from '../api/services/historyService';
 import { Exercise } from '../api/models/exercise';
 
 export function ExercisesScreen() {
     const [searchQuery, setSearchQuery] = useState('');
     const [activeFilter, setActiveFilter] = useState<string | null>(null);
+
+    // Modal state
+    const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
+    const [showDetailModal, setShowDetailModal] = useState(false);
+    const [showHistoryModal, setShowHistoryModal] = useState(false);
 
     // Get unique muscle groups for filter chips
     const muscleFilters = useMemo(() => getUniqueMuscles(), []);
@@ -34,10 +42,46 @@ export function ExercisesScreen() {
         setActiveFilter(filter);
     }, []);
 
-    // Handle exercise item press (future: navigate to detail view)
+    // Handle exercise item press - open detail modal
     const handleExercisePress = useCallback((exercise: Exercise) => {
-        console.log('Exercise pressed:', exercise.name);
+        setSelectedExercise(exercise);
+        setShowDetailModal(true);
     }, []);
+
+    // Handle closing detail modal
+    const handleCloseDetailModal = useCallback(() => {
+        setShowDetailModal(false);
+    }, []);
+
+    // Handle "View Full History" button
+    const handleViewFullHistory = useCallback(() => {
+        // Close detail modal first to avoid stacking issues on iOS/Android
+        setShowDetailModal(false);
+        // Small delay to allow valid unmounting/animation completion
+        setTimeout(() => {
+            setShowHistoryModal(true);
+        }, 400);
+    }, []);
+
+    // Handle closing history modal
+    const handleCloseHistoryModal = useCallback(() => {
+        setShowHistoryModal(false);
+        // Re-open detail modal after delay to simulate "Back" navigation
+        setTimeout(() => {
+            setShowDetailModal(true);
+        }, 400);
+    }, []);
+
+    // Get history data for selected exercise
+    const historyEntries = useMemo(() => {
+        if (!selectedExercise) return [];
+        return getExerciseHistory(selectedExercise.id);
+    }, [selectedExercise]);
+
+    const stats = useMemo(() => {
+        if (!selectedExercise) return { personalBest: 0, totalVolume: 0, unit: 'lbs' as const };
+        return getExerciseStats(selectedExercise.id);
+    }, [selectedExercise]);
 
     // Render each exercise item
     const renderExerciseItem = useCallback(
@@ -92,6 +136,23 @@ export function ExercisesScreen() {
                 maxToRenderPerBatch={20}
                 windowSize={10}
                 removeClippedSubviews={true}
+            />
+
+            {/* Exercise Detail Modal */}
+            <ExerciseDetailModal
+                visible={showDetailModal}
+                exercise={selectedExercise}
+                onClose={handleCloseDetailModal}
+                onViewFullHistory={handleViewFullHistory}
+            />
+
+            {/* Exercise History Modal */}
+            <ExerciseHistoryModal
+                visible={showHistoryModal}
+                exerciseName={selectedExercise?.name || ''}
+                entries={historyEntries}
+                unit={stats.unit}
+                onClose={handleCloseHistoryModal}
             />
         </View>
     );
