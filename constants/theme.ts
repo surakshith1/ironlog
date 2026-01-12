@@ -2,11 +2,16 @@ export const theme = {
     colors: {
         primary: '#d68f71', // Clay Terra Cotta
         background: '#1f1713', // Background Dark
+        backgroundAlt: '#151517', // Alternate Background (for exercises screen)
         card: '#2a221e', // Card Dark
         input: '#181210', // Input Dark
         surface: '#222224', // Surface Grey
+        surfaceDark: '#1E1E21', // Surface Dark (for search bars, chips)
+        surfaceLighter: '#2C2C30', // Surface Lighter (for hover states)
         text: '#ffffff', // Primary White
         textSecondary: '#a1a1aa', // Text Secondary
+        textMuted: '#6b7280', // Muted text (gray-500)
+        border: 'rgba(255, 255, 255, 0.05)', // Border color
         success: '#81c784', // Success Green
         error: '#e57373', // Error Red
         muted: '#768598', // Muted Blue
@@ -39,7 +44,7 @@ export const theme = {
         },
         caption: {
             fontSize: 14,
-            color: '#a1a1aa',
+            // Note: caption color should be applied via theme.colors.textSecondary
         },
         mono: {
             fontFamily: 'Courier New', // Fallback for now

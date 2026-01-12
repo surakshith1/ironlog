@@ -39,7 +39,7 @@ const styles = StyleSheet.create({
     },
     caption: {
         fontSize: theme.text.caption.fontSize,
-        color: theme.text.caption.color,
+        color: theme.colors.textSecondary,
     },
     mono: {
         fontFamily: theme.text.mono.fontFamily,

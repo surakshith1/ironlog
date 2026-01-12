@@ -18,9 +18,9 @@ const styles = StyleSheet.create({
         backgroundColor: theme.colors.background,
         justifyContent: 'center',
         alignItems: 'center',
-        gap: 8,
+        gap: theme.spacing.small,
     },
     subtitle: {
-        color: '#9ca3af',
+        color: theme.colors.textSecondary,
     },
 });

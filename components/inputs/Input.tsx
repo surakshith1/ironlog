@@ -15,7 +15,7 @@ export function Input({ style, label, error, containerStyle, ...props }: InputPr
         <View style={[styles.container, containerStyle]}>
             {label && <Text style={styles.label}>{label}</Text>}
             <TextInput
-                placeholderTextColor="#6b7280"
+                placeholderTextColor={theme.colors.textMuted}
                 style={[
                     styles.input,
                     isFocused && styles.inputFocused,
@@ -33,21 +33,21 @@ export function Input({ style, label, error, containerStyle, ...props }: InputPr
 
 const styles = StyleSheet.create({
     container: {
-        marginBottom: 16,
+        marginBottom: theme.spacing.medium,
     },
     label: {
-        color: '#9ca3af', // gray-400
-        fontSize: 14,
-        marginBottom: 4,
-        marginLeft: 4,
+        color: theme.colors.textSecondary,
+        fontSize: theme.text.caption.fontSize,
+        marginBottom: theme.spacing.micro,
+        marginLeft: theme.spacing.micro,
     },
     input: {
         height: 56,
         backgroundColor: theme.colors.input,
         color: theme.colors.text,
         borderRadius: 12,
-        paddingHorizontal: 16,
-        fontSize: 16,
+        paddingHorizontal: theme.spacing.medium,
+        fontSize: theme.text.body.fontSize,
         borderWidth: 1,
         borderColor: 'transparent',
     },
@@ -60,7 +60,7 @@ const styles = StyleSheet.create({
     errorText: {
         color: theme.colors.error,
         fontSize: 12,
-        marginTop: 4,
-        marginLeft: 4,
+        marginTop: theme.spacing.micro,
+        marginLeft: theme.spacing.micro,
     },
 });
