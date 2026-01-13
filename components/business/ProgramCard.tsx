@@ -5,10 +5,22 @@ import { ThemedText } from '../display/Typography';
 import { Button } from '../inputs/Button';
 import { theme } from '../../constants/theme';
 import { CheckCircle, MoreHorizontal, Trash2 } from 'lucide-react-native';
-import { Program } from '../../constants/dummyData';
+
+/**
+ * Data shape for displaying a program in a card.
+ * This is a simplified view model, not the full Program from the store.
+ */
+export interface ProgramCardData {
+    id: string;
+    name: string;
+    schedule: string;
+    focus: string;
+    lastEdited: string;
+    isLegacy?: boolean;
+}
 
 interface ProgramCardProps {
-    program: Program;
+    program: ProgramCardData;
     isActive: boolean;
     onSetActive: (id: string) => void;
     onDelete: (id: string) => void;

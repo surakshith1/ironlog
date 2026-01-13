@@ -4,21 +4,56 @@ import { theme } from '../constants/theme';
 import { ThemedText } from '../components/display/Typography';
 import { ProgramCard } from '../components/business/ProgramCard';
 import { useWorkoutStore } from '../store/workoutStore';
+import { useProgramStore } from '../store/programStore';
 import { useNavigation } from '@react-navigation/native';
-import { PROGRAMS } from '../constants/dummyData';
 
 export function WorkoutsScreen() {
     const navigation = useNavigation<any>();
 
     // Global State
     const activeProgramId = useWorkoutStore((state) => state.activeProgramId);
+    const getProgram = useProgramStore((state) => state.getProgram);
 
-    // Find the active program from the list
-    const activeProgram = PROGRAMS.find((p) => p.id === activeProgramId);
+    // Find the active program from the store
+    const activeProgram = activeProgramId ? getProgram(activeProgramId) : undefined;
 
     // Handler for clicking the active program card
     const handleProgramPress = () => {
         navigation.navigate('CurrentWorkout');
+    };
+
+    /**
+     * Map program data to the format expected by ProgramCard.
+     */
+    const mapProgramToCardData = (program: typeof activeProgram) => {
+        if (!program) return null;
+        return {
+            id: program.id,
+            name: program.name,
+            schedule: `${program.workouts.length} Workout${program.workouts.length !== 1 ? 's' : ''}`,
+            focus: program.workouts[0]?.type || 'General',
+            lastEdited: formatRelativeDate(program.importedAt),
+        };
+    };
+
+    /**
+     * Format a timestamp to a relative date string.
+     */
+    const formatRelativeDate = (timestamp: number): string => {
+        const now = Date.now();
+        const diff = now - timestamp;
+
+        const minutes = Math.floor(diff / (1000 * 60));
+        const hours = Math.floor(diff / (1000 * 60 * 60));
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+
+        if (minutes < 1) return 'Just now';
+        if (minutes < 60) return `${minutes}m ago`;
+        if (hours < 24) return `${hours}h ago`;
+        if (days === 1) return 'Yesterday';
+        if (days < 7) return `${days} days ago`;
+        if (days < 30) return `${Math.floor(days / 7)} weeks ago`;
+        return `${Math.floor(days / 30)} months ago`;
     };
 
     // No active program state
@@ -35,6 +70,9 @@ export function WorkoutsScreen() {
         );
     }
 
+    const cardData = mapProgramToCardData(activeProgram);
+    if (!cardData) return null;
+
     // Active program exists - show the program card
     return (
         <View style={styles.container}>
@@ -48,7 +86,7 @@ export function WorkoutsScreen() {
                     activeOpacity={0.8}
                 >
                     <ProgramCard
-                        program={activeProgram}
+                        program={cardData}
                         isActive={true}
                         onSetActive={() => { }}
                         onDelete={() => { }}
