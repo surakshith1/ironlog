@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,10 +10,12 @@ import { ExerciseDetailModal } from '../components/display/ExerciseDetailModal';
 import { ExerciseHistoryModal } from '../components/display/ExerciseHistoryModal';
 import { SetData } from '../components/business/SetRow';
 import { useWorkoutStore } from '../store/workoutStore';
+import { useProgramStore } from '../store/programStore';
 import { useNavigation } from '@react-navigation/native';
 import { getExerciseById } from '../api/services/exerciseService';
 import { getExerciseHistory, getExerciseStats } from '../api/services/historyService';
 import { Exercise } from '../api/models/exercise';
+import { ProgramExercise, Workout as ProgramWorkout } from '../api/models/program';
 
 // --- Workout Data Types ---
 interface WorkoutExercise {
@@ -23,14 +25,26 @@ interface WorkoutExercise {
     sets: SetData[];
 }
 
-interface Workout {
-    id: string;
-    name: string;
-    exercises: WorkoutExercise[];
+interface LocalWorkoutState {
+    [workoutId: string]: WorkoutExercise[];
 }
 
-// Helper to create fresh sets (all uncompleted)
-const createFreshSets = (exercises: WorkoutExercise[]): WorkoutExercise[] => {
+// Helper to create fresh sets from ProgramExercise data
+const createSetsFromProgram = (programExercise: ProgramExercise): SetData[] => {
+    const sets: SetData[] = [];
+    for (let i = 0; i < programExercise.sets; i++) {
+        sets.push({
+            setNumber: i + 1,
+            weight: programExercise.targetWeight !== 'Bodyweight' ? '' : 'BW',
+            reps: '',
+            isCompleted: false
+        });
+    }
+    return sets;
+};
+
+// Helper to reset all sets to uncompleted
+const resetSets = (exercises: WorkoutExercise[]): WorkoutExercise[] => {
     return exercises.map(exercise => ({
         ...exercise,
         sets: exercise.sets.map(set => ({
@@ -40,44 +54,73 @@ const createFreshSets = (exercises: WorkoutExercise[]): WorkoutExercise[] => {
     }));
 };
 
-const INITIAL_WORKOUT: Workout = {
-    id: '1',
-    name: 'Push A',
-    exercises: [
-        {
-            id: 'Barbell_Bench_Press_-_Medium_Grip',
-            name: 'Barbell Bench Press',
-            lastSession: 'Last: 225lbs x 5',
-            sets: [
-                { setNumber: 1, weight: '225', reps: '5', isCompleted: false },
-                { setNumber: 2, weight: '225', reps: '', isCompleted: false },
-                { setNumber: 3, weight: '', reps: '', isCompleted: false }
-            ]
-        },
-        {
-            id: 'Incline_Dumbbell_Press',
-            name: 'Incline Dumbbell Press',
-            lastSession: 'Last: 80lbs x 10',
-            sets: [
-                { setNumber: 1, weight: '80', reps: '', isCompleted: false },
-                { setNumber: 2, weight: '80', reps: '', isCompleted: false }
-            ]
-        }
-    ]
+// Transform program exercises to local workout exercise state
+const transformProgramExercises = (programExercises: ProgramExercise[]): WorkoutExercise[] => {
+    return programExercises.map(pe => ({
+        id: pe.exerciseId,
+        name: pe.name || pe.exerciseId.replace(/_/g, ' '),
+        lastSession: pe.reps ? `Target: ${pe.reps} reps @ ${pe.targetWeight}` : `Target: ${pe.targetWeight}`,
+        sets: createSetsFromProgram(pe)
+    }));
 };
 
-export function CurrentWorkoutScreen() {
+export function CurrentWorkoutScreen({ route }: { route?: { params?: { programId?: string } } }) {
     const insets = useSafeAreaInsets();
     const navigation = useNavigation();
 
-    // Global State
+    // Get programId from route params (passed during navigation)
+    const routeProgramId = route?.params?.programId;
+
+    // Global State - Workout Store
+    const activeProgramId = useWorkoutStore(state => state.activeProgramId);
+    const previewProgramId = useWorkoutStore(state => state.previewProgramId);
+    const activeWorkoutId = useWorkoutStore(state => state.activeWorkoutId);
+    const setActiveWorkout = useWorkoutStore(state => state.setActiveWorkout);
     const isWorkoutStarted = useWorkoutStore(state => state.isWorkoutStarted);
     const startTimeHook = useWorkoutStore(state => state.startTime);
     const startWorkout = useWorkoutStore(state => state.startWorkout);
     const finishWorkout = useWorkoutStore(state => state.finishWorkout);
 
-    // Local State
-    const [workout, setWorkout] = useState<Workout>(INITIAL_WORKOUT);
+    // Global State - Program Store
+    const getProgram = useProgramStore(state => state.getProgram);
+
+    // Determine which program to display: route param > preview > active
+    const displayProgramId = routeProgramId || previewProgramId || activeProgramId;
+    const displayProgram = displayProgramId ? getProgram(displayProgramId) : undefined;
+
+    // Check if viewing the currently active program (matches activeProgramId)
+    const isActiveProgram = displayProgramId === activeProgramId;
+
+    // Local State - Tracks exercise data per workout
+    const [workoutStates, setWorkoutStates] = useState<LocalWorkoutState>({});
+
+    // Get current selected workout
+    const selectedWorkout = useMemo(() => {
+        if (!displayProgram) return undefined;
+        if (activeWorkoutId) {
+            const found = displayProgram.workouts.find((w: { id: string }) => w.id === activeWorkoutId);
+            // If the activeWorkoutId doesn't match any workout in this program, fall back to first
+            if (found) return found;
+        }
+        // Default to first workout if none selected or no match found
+        return displayProgram.workouts[0];
+    }, [displayProgram, activeWorkoutId]);
+
+    // Initialize exercise state when workout changes
+    useEffect(() => {
+        if (selectedWorkout && !workoutStates[selectedWorkout.id]) {
+            setWorkoutStates(prev => ({
+                ...prev,
+                [selectedWorkout.id]: transformProgramExercises(selectedWorkout.exercises)
+            }));
+        }
+    }, [selectedWorkout]);
+
+    // Get current exercises for selected workout
+    const currentExercises = useMemo(() => {
+        if (!selectedWorkout) return [];
+        return workoutStates[selectedWorkout.id] || transformProgramExercises(selectedWorkout.exercises);
+    }, [selectedWorkout, workoutStates]);
 
     // Modal state for exercise details
     const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
@@ -98,10 +141,12 @@ export function CurrentWorkoutScreen() {
     // Handlers
     const handleStartWorkout = () => {
         // Reset all sets to uncompleted (fresh start)
-        setWorkout(prev => ({
-            ...prev,
-            exercises: createFreshSets(prev.exercises)
-        }));
+        if (selectedWorkout) {
+            setWorkoutStates(prev => ({
+                ...prev,
+                [selectedWorkout.id]: resetSets(currentExercises)
+            }));
+        }
         startWorkout();
     };
 
@@ -123,39 +168,66 @@ export function CurrentWorkoutScreen() {
     };
 
     const handleSetChange = (exerciseIndex: number, setIndex: number, field: 'weight' | 'reps', value: string) => {
-        const newExercises = [...workout.exercises];
-        const exercise = newExercises[exerciseIndex];
+        if (!selectedWorkout) return;
+
+        const newExercises = [...currentExercises];
+        const exercise = { ...newExercises[exerciseIndex] };
         const newSets = [...exercise.sets];
         newSets[setIndex] = { ...newSets[setIndex], [field]: value };
         exercise.sets = newSets;
-        setWorkout({ ...workout, exercises: newExercises });
+        newExercises[exerciseIndex] = exercise;
+
+        setWorkoutStates(prev => ({
+            ...prev,
+            [selectedWorkout.id]: newExercises
+        }));
     };
 
     const handleToggleSetComplete = (exerciseIndex: number, setIndex: number) => {
-        const newExercises = [...workout.exercises];
-        const exercise = newExercises[exerciseIndex];
+        if (!selectedWorkout) return;
+
+        const newExercises = [...currentExercises];
+        const exercise = { ...newExercises[exerciseIndex] };
         const newSets = [...exercise.sets];
         newSets[setIndex] = {
             ...newSets[setIndex],
             isCompleted: !newSets[setIndex].isCompleted
         };
         exercise.sets = newSets;
-        setWorkout({ ...workout, exercises: newExercises });
+        newExercises[exerciseIndex] = exercise;
+
+        setWorkoutStates(prev => ({
+            ...prev,
+            [selectedWorkout.id]: newExercises
+        }));
     };
 
     const handleAddSet = (exerciseIndex: number) => {
-        const newExercises = [...workout.exercises];
-        const exercise = newExercises[exerciseIndex];
+        if (!selectedWorkout) return;
+
+        const newExercises = [...currentExercises];
+        const exercise = { ...newExercises[exerciseIndex] };
         const lastSet = exercise.sets[exercise.sets.length - 1];
 
-        exercise.sets.push({
+        exercise.sets = [...exercise.sets, {
             setNumber: exercise.sets.length + 1,
             weight: lastSet ? lastSet.weight : '', // Copy previous weight
             reps: '',
             isCompleted: false
-        });
+        }];
+        newExercises[exerciseIndex] = exercise;
 
-        setWorkout({ ...workout, exercises: newExercises });
+        setWorkoutStates(prev => ({
+            ...prev,
+            [selectedWorkout.id]: newExercises
+        }));
+    };
+
+    // Handle tab selection
+    const handleWorkoutTabPress = (workoutId: string) => {
+        if (!isWorkoutStarted) {
+            setActiveWorkout(workoutId);
+        }
     };
 
     // Handle clicking on exercise name/chart button to view details
@@ -190,10 +262,24 @@ export function CurrentWorkoutScreen() {
         }, 400);
     }, []);
 
+    // Early return if no program to display
+    if (!displayProgram || !selectedWorkout) {
+        return (
+            <View style={[styles.container, styles.centerContent]}>
+                <ThemedText variant="h2" style={styles.noActiveTitle}>
+                    No Program Found
+                </ThemedText>
+                <ThemedText variant="body" style={styles.noActiveSubtitle}>
+                    Go back and select a program to view.
+                </ThemedText>
+            </View>
+        );
+    }
+
     return (
         <View style={styles.container}>
             <WorkoutHeader
-                title={workout.name}
+                title={selectedWorkout.name}
                 startTime={startTimeHook}
                 onBack={() => navigation.goBack()}
             />
@@ -210,21 +296,30 @@ export function CurrentWorkoutScreen() {
                     ]}
                     keyboardShouldPersistTaps="handled"
                 >
-                    {/* Routine Tabs */}
+                    {/* Routine Tabs - Dynamic from program workouts */}
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabsContainer}>
-                        <TouchableOpacity style={[styles.activeTab, isWorkoutStarted && { opacity: 0.7 }]} disabled={isWorkoutStarted}>
-                            <ThemedText style={styles.activeTabText}>Push A</ThemedText>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={[styles.inactiveTab, isWorkoutStarted && { opacity: 0.5 }]} disabled={isWorkoutStarted}>
-                            <ThemedText style={styles.inactiveTabText}>Pull B</ThemedText>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={[styles.inactiveTab, isWorkoutStarted && { opacity: 0.5 }]} disabled={isWorkoutStarted}>
-                            <ThemedText style={styles.inactiveTabText}>Legs</ThemedText>
-                        </TouchableOpacity>
+                        {displayProgram.workouts.map((workout: { id: string; name: string }) => {
+                            const isActive = workout.id === selectedWorkout.id;
+                            return (
+                                <TouchableOpacity
+                                    key={workout.id}
+                                    style={[
+                                        isActive ? styles.activeTab : styles.inactiveTab,
+                                        isWorkoutStarted && { opacity: isActive ? 0.7 : 0.5 }
+                                    ]}
+                                    disabled={isWorkoutStarted}
+                                    onPress={() => handleWorkoutTabPress(workout.id)}
+                                >
+                                    <ThemedText style={isActive ? styles.activeTabText : styles.inactiveTabText}>
+                                        {workout.name}
+                                    </ThemedText>
+                                </TouchableOpacity>
+                            );
+                        })}
                     </ScrollView>
 
-                    {/* Exercises */}
-                    {workout.exercises.map((exercise, index) => (
+                    {/* Exercises - Dynamic from selected workout */}
+                    {currentExercises.map((exercise: WorkoutExercise, index: number) => (
                         <ExerciseCard
                             key={exercise.id}
                             exerciseName={exercise.name}
@@ -241,26 +336,30 @@ export function CurrentWorkoutScreen() {
                 </ScrollView>
             </KeyboardAvoidingView>
 
-            {/* Fixed Footer */}
-            <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
-                {!isWorkoutStarted ? (
-                    <TouchableOpacity
-                        style={[styles.actionButton, styles.startButton]}
-                        onPress={handleStartWorkout}
-                    >
-                        <ThemedText style={styles.startButtonText}>Start Workout</ThemedText>
-                        <Ionicons name="play" size={24} color="white" />
-                    </TouchableOpacity>
-                ) : (
-                    <TouchableOpacity
-                        style={[styles.actionButton, styles.finishButton]}
-                        onPress={handleFinishWorkout}
-                    >
-                        <ThemedText style={styles.finishButtonText}>Finish Workout</ThemedText>
-                        <Ionicons name="checkmark-circle-outline" size={24} color="black" />
-                    </TouchableOpacity>
-                )}
-            </View>
+            {/* Fixed Footer - Only show for active program */}
+            {isActiveProgram && (
+                <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
+                    {!isWorkoutStarted ? (
+                        // Active program, not started: Show "Start Workout" button
+                        <TouchableOpacity
+                            style={[styles.actionButton, styles.startButton]}
+                            onPress={handleStartWorkout}
+                        >
+                            <ThemedText style={styles.startButtonText}>Start Workout</ThemedText>
+                            <Ionicons name="play" size={24} color="white" />
+                        </TouchableOpacity>
+                    ) : (
+                        // Active program, workout started: Show "Finish Workout" button
+                        <TouchableOpacity
+                            style={[styles.actionButton, styles.finishButton]}
+                            onPress={handleFinishWorkout}
+                        >
+                            <ThemedText style={styles.finishButtonText}>Finish Workout</ThemedText>
+                            <Ionicons name="checkmark-circle-outline" size={24} color="black" />
+                        </TouchableOpacity>
+                    )}
+                </View>
+            )}
 
             {/* Exercise Detail Modal */}
             <ExerciseDetailModal
@@ -286,6 +385,19 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: theme.colors.background,
+    },
+    centerContent: {
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 32,
+    },
+    noActiveTitle: {
+        textAlign: 'center',
+        marginBottom: 8,
+    },
+    noActiveSubtitle: {
+        textAlign: 'center',
+        color: theme.colors.textSecondary,
     },
     scrollContent: {
         padding: theme.spacing.medium,

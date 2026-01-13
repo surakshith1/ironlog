@@ -15,6 +15,7 @@ import { useNavigation } from '@react-navigation/native';
 
 const Tab = createBottomTabNavigator();
 const WorkoutsStack = createNativeStackNavigator();
+const ProgramsStack = createNativeStackNavigator();
 
 // Stack navigator for Workouts tab
 function WorkoutsStackNavigator() {
@@ -34,6 +35,27 @@ function WorkoutsStackNavigator() {
                 }}
             />
         </WorkoutsStack.Navigator>
+    );
+}
+
+// Stack navigator for Programs tab
+function ProgramsStackNavigator() {
+    return (
+        <ProgramsStack.Navigator
+            screenOptions={{
+                headerShown: false,
+            }}
+        >
+            <ProgramsStack.Screen name="ProgramsMain" component={ProgramsScreen} />
+            <ProgramsStack.Screen
+                name="ProgramWorkout"
+                component={CurrentWorkoutScreen}
+                options={{
+                    headerShown: false,
+                    animation: 'slide_from_right',
+                }}
+            />
+        </ProgramsStack.Navigator>
     );
 }
 
@@ -91,7 +113,7 @@ export const MainNavigator = () => {
             />
             <Tab.Screen
                 name="Programs"
-                component={ProgramsScreen}
+                component={ProgramsStackNavigator}
                 options={{
                     tabBarIcon: ({ color, size }) => <Notebook color={color} size={size} />,
                     tabBarLabel: 'Programs',

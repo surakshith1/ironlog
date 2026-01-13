@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { theme } from '../constants/theme';
 import { ThemedText } from '../components/display/Typography';
 import { ProgramCard } from '../components/business/ProgramCard';
@@ -19,7 +19,8 @@ export function WorkoutsScreen() {
 
     // Handler for clicking the active program card
     const handleProgramPress = () => {
-        navigation.navigate('CurrentWorkout');
+        // Pass activeProgramId as route param for consistency
+        navigation.navigate('CurrentWorkout', { programId: activeProgramId });
     };
 
     /**
@@ -81,18 +82,14 @@ export function WorkoutsScreen() {
                     Current Program
                 </ThemedText>
 
-                <TouchableOpacity
-                    onPress={handleProgramPress}
-                    activeOpacity={0.8}
-                >
-                    <ProgramCard
-                        program={cardData}
-                        isActive={true}
-                        onSetActive={() => { }}
-                        onDelete={() => { }}
-                        onOptions={() => { }}
-                    />
-                </TouchableOpacity>
+                <ProgramCard
+                    program={cardData}
+                    isActive={true}
+                    onPress={() => handleProgramPress()}
+                    onSetActive={() => { }}
+                    onDelete={() => { }}
+                    onOptions={() => { }}
+                />
 
                 <ThemedText variant="caption" style={styles.tapHint}>
                     Tap to start your workout

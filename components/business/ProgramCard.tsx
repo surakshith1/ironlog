@@ -22,67 +22,72 @@ export interface ProgramCardData {
 interface ProgramCardProps {
     program: ProgramCardData;
     isActive: boolean;
+    onPress?: (id: string) => void;
     onSetActive: (id: string) => void;
     onDelete: (id: string) => void;
     onOptions?: (id: string) => void;
 }
 
-export function ProgramCard({ program, isActive, onSetActive, onDelete, onOptions }: ProgramCardProps) {
+export function ProgramCard({ program, isActive, onPress, onSetActive, onDelete, onOptions }: ProgramCardProps) {
     if (isActive) {
         return (
-            <Card style={styles.activeCard}>
-                {/* Status Badge */}
-                <View style={styles.activeBadge}>
-                    <CheckCircle size={14} color="white" fill={theme.colors.primary} />
-                    <Text style={styles.activeBadgeText}>ACTIVE</Text>
-                </View>
-
-                <View style={styles.contentContainer}>
-                    <ThemedText variant="h2" style={styles.activeTitle}>{program.name}</ThemedText>
-                    <View style={styles.metaRow}>
-                        <ThemedText variant="body" style={styles.activeMeta}>{program.schedule}</ThemedText>
-                        <View style={styles.dot} />
-                        <ThemedText variant="body" style={styles.activeMeta}>{program.focus}</ThemedText>
+            <TouchableOpacity onPress={() => onPress?.(program.id)} activeOpacity={0.8}>
+                <Card style={styles.activeCard}>
+                    {/* Status Badge */}
+                    <View style={styles.activeBadge}>
+                        <CheckCircle size={14} color="white" fill={theme.colors.primary} />
+                        <Text style={styles.activeBadgeText}>ACTIVE</Text>
                     </View>
-                </View>
 
-                <View style={styles.footer}>
-                    <ThemedText variant="caption" style={styles.lastEdited}>Last edited: {program.lastEdited}</ThemedText>
-                    <TouchableOpacity
-                        onPress={() => onOptions?.(program.id)}
-                        style={styles.iconButton}
-                    >
-                        <MoreHorizontal size={20} color={theme.colors.textSecondary} />
-                    </TouchableOpacity>
-                </View>
-            </Card>
+                    <View style={styles.contentContainer}>
+                        <ThemedText variant="h2" style={styles.activeTitle}>{program.name}</ThemedText>
+                        <View style={styles.metaRow}>
+                            <ThemedText variant="body" style={styles.activeMeta}>{program.schedule}</ThemedText>
+                            <View style={styles.dot} />
+                            <ThemedText variant="body" style={styles.activeMeta}>{program.focus}</ThemedText>
+                        </View>
+                    </View>
+
+                    <View style={styles.footer}>
+                        <ThemedText variant="caption" style={styles.lastEdited}>Last edited: {program.lastEdited}</ThemedText>
+                        <TouchableOpacity
+                            onPress={() => onOptions?.(program.id)}
+                            style={styles.iconButton}
+                        >
+                            <MoreHorizontal size={20} color={theme.colors.textSecondary} />
+                        </TouchableOpacity>
+                    </View>
+                </Card>
+            </TouchableOpacity>
         );
     }
 
     return (
-        <Card style={[styles.inactiveCard, program.isLegacy && styles.legacyCard]}>
-            <View style={styles.contentContainer}>
-                <ThemedText variant="h2" style={styles.inactiveTitle}>{program.name}</ThemedText>
-                <ThemedText variant="body" style={styles.inactiveMeta}>
-                    {program.schedule} • {program.focus}
-                </ThemedText>
-            </View>
+        <TouchableOpacity onPress={() => onPress?.(program.id)} activeOpacity={0.8}>
+            <Card style={[styles.inactiveCard, program.isLegacy && styles.legacyCard]}>
+                <View style={styles.contentContainer}>
+                    <ThemedText variant="h2" style={styles.inactiveTitle}>{program.name}</ThemedText>
+                    <ThemedText variant="body" style={styles.inactiveMeta}>
+                        {program.schedule} • {program.focus}
+                    </ThemedText>
+                </View>
 
-            <View style={styles.actionRow}>
-                <Button
-                    title="Set Active"
-                    variant="secondary"
-                    style={styles.setActiveButton}
-                    onPress={() => onSetActive(program.id)}
-                />
-                <Button
-                    variant="icon" // Using icon variant if available, or just styling a button
-                    style={styles.deleteButton}
-                    onPress={() => onDelete(program.id)}
-                    icon={<Trash2 size={20} color={theme.colors.error} />}
-                />
-            </View>
-        </Card>
+                <View style={styles.actionRow}>
+                    <Button
+                        title="Set Active"
+                        variant="secondary"
+                        style={styles.setActiveButton}
+                        onPress={() => onSetActive(program.id)}
+                    />
+                    <Button
+                        variant="icon" // Using icon variant if available, or just styling a button
+                        style={styles.deleteButton}
+                        onPress={() => onDelete(program.id)}
+                        icon={<Trash2 size={20} color={theme.colors.error} />}
+                    />
+                </View>
+            </Card>
+        </TouchableOpacity>
     );
 }
 

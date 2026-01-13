@@ -29,6 +29,13 @@ export const ProgramsScreen = () => {
         navigation.navigate('Workouts');
     };
 
+    const handleProgramPress = (id: string) => {
+        // Set preview program ID in store and navigate to workout screen
+        useWorkoutStore.getState().setPreviewProgram(id);
+        // Pass programId as route param as backup in case store isn't updated yet
+        navigation.navigate('ProgramWorkout', { programId: id });
+    };
+
     const handleDelete = (id: string) => {
         deleteProgram(id);
         // If we deleted the active program, clear the selection
@@ -41,8 +48,8 @@ export const ProgramsScreen = () => {
         setIsImportModalVisible(true);
     };
 
-    const handleImportSuccess = (count: number) => {
-        console.log(`Imported ${count} programs`);
+    const handleImportSuccess = (_count: number) => {
+        // Programs imported successfully, store will update automatically
     };
 
     /**
@@ -121,6 +128,7 @@ export const ProgramsScreen = () => {
                         <ProgramCard
                             program={mapProgramToCardData(item)}
                             isActive={item.id === activeProgramId}
+                            onPress={handleProgramPress}
                             onSetActive={handleSetActive}
                             onDelete={handleDelete}
                         />
