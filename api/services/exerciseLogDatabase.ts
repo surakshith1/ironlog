@@ -472,44 +472,45 @@ export async function getWorkoutStreak(): Promise<number> {
     const database = await getDatabase();
 
     // Get distinct workout dates, ordered most recent first
+    // Use localtime to match the user's local timezone
     const rows = await database.getAllAsync<{ workoutDate: string }>(
-        `SELECT DISTINCT date(finishedAt) as workoutDate
+        `SELECT DISTINCT date(finishedAt, 'localtime') as workoutDate
          FROM workout_sessions
          ORDER BY workoutDate DESC`
     );
 
     if (rows.length === 0) return 0;
 
-    let streak = 0;
+    // Create a Set of workout dates for O(1) lookup
+    const workoutDates = new Set(rows.map(r => r.workoutDate));
+
+    // Get today's date in local timezone (YYYY-MM-DD format)
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const todayStr = formatLocalDate(today);
 
-    // Check each date starting from today or yesterday
+    // Check if we have a workout today
+    const hasWorkoutToday = workoutDates.has(todayStr);
+
+    // Determine starting point for streak count
     let checkDate = new Date(today);
-
-    // If no workout today, check if streak can start from yesterday
-    const todayStr = checkDate.toISOString().split('T')[0];
-    const hasWorkoutToday = rows.some(r => r.workoutDate === todayStr);
-
     if (!hasWorkoutToday) {
         // Check yesterday
         checkDate.setDate(checkDate.getDate() - 1);
-        const yesterdayStr = checkDate.toISOString().split('T')[0];
-        const hasWorkoutYesterday = rows.some(r => r.workoutDate === yesterdayStr);
-        if (!hasWorkoutYesterday) {
-            return 0; // Streak broken
+        const yesterdayStr = formatLocalDate(checkDate);
+        if (!workoutDates.has(yesterdayStr)) {
+            return 0; // Streak broken - no workout today or yesterday
         }
     }
 
-    // Count consecutive days
-    for (const row of rows) {
-        const checkDateStr = checkDate.toISOString().split('T')[0];
-        if (row.workoutDate === checkDateStr) {
+    // Count consecutive days backwards
+    let streak = 0;
+    while (true) {
+        const dateStr = formatLocalDate(checkDate);
+        if (workoutDates.has(dateStr)) {
             streak++;
             checkDate.setDate(checkDate.getDate() - 1);
-        } else if (row.workoutDate < checkDateStr) {
-            // Gap found, streak ends
-            break;
+        } else {
+            break; // Gap found, streak ends
         }
     }
 
@@ -517,43 +518,66 @@ export async function getWorkoutStreak(): Promise<number> {
 }
 
 /**
- * Get volume data by day for the last N days (for weekly chart).
+ * Format a Date to local YYYY-MM-DD string.
+ */
+function formatLocalDate(date: Date): string {
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+/**
+ * Get volume data for the current calendar week (Mon-Sun).
  * Returns data for each day with day-of-week labels.
  */
 export async function getVolumeByDay(days: number = 7): Promise<VolumeDataPoint[]> {
     const database = await getDatabase();
 
+    // Get the Monday of the current week
+    const today = new Date();
+    const dayOfWeek = today.getDay(); // 0 = Sunday, 1 = Monday, ...
+    const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // If Sunday, go back 6 days
+    const monday = new Date(today);
+    monday.setDate(today.getDate() + mondayOffset);
+    monday.setHours(0, 0, 0, 0);
+
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+
+    const mondayStr = formatLocalDate(monday);
+    const sundayStr = formatLocalDate(sunday);
+
     const rows = await database.getAllAsync<{
         dayDate: string;
-        dayOfWeek: string;
         totalVolume: number;
     }>(
         `SELECT 
-            date(loggedAt) as dayDate,
-            strftime('%w', loggedAt) as dayOfWeek,
+            date(loggedAt, 'localtime') as dayDate,
             SUM(volume) as totalVolume
          FROM logged_sets
-         WHERE loggedAt >= datetime('now', '-${days} days')
+         WHERE date(loggedAt, 'localtime') >= ?
+           AND date(loggedAt, 'localtime') <= ?
          GROUP BY dayDate
-         ORDER BY dayDate ASC`
+         ORDER BY dayDate ASC`,
+        [mondayStr, sundayStr]
     );
 
-    // Create a map for all days in the period
-    const dayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+    // Calendar week order: Mon, Tue, Wed, Thu, Fri, Sat, Sun
+    const dayLabels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
     const result: VolumeDataPoint[] = [];
-    const today = new Date();
+    const todayStr = formatLocalDate(today);
 
-    for (let i = days - 1; i >= 0; i--) {
-        const date = new Date(today);
-        date.setDate(date.getDate() - i);
-        const dateStr = date.toISOString().split('T')[0];
-        const dayOfWeek = date.getDay();
+    for (let i = 0; i < 7; i++) {
+        const date = new Date(monday);
+        date.setDate(monday.getDate() + i);
+        const dateStr = formatLocalDate(date);
 
         const row = rows.find(r => r.dayDate === dateStr);
         result.push({
-            label: dayLabels[dayOfWeek],
+            label: dayLabels[i],
             value: row?.totalVolume || 0,
-            isHighlighted: i === 0, // Today is highlighted
+            isHighlighted: dateStr === todayStr, // Today is highlighted
         });
     }
 
@@ -612,38 +636,40 @@ function getISOWeek(date: Date): number {
 }
 
 /**
- * Get volume data by month for the last N months (for yearly chart).
+ * Get volume data for the current calendar year (Jan-Dec).
  */
 export async function getVolumeByMonth(months: number = 12): Promise<VolumeDataPoint[]> {
     const database = await getDatabase();
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    const currentMonth = today.getMonth(); // 0-indexed
 
     const rows = await database.getAllAsync<{
         monthStr: string;
         totalVolume: number;
     }>(
         `SELECT 
-            strftime('%Y-%m', loggedAt) as monthStr,
+            strftime('%Y-%m', loggedAt, 'localtime') as monthStr,
             SUM(volume) as totalVolume
          FROM logged_sets
-         WHERE loggedAt >= datetime('now', '-${months} months')
+         WHERE strftime('%Y', loggedAt, 'localtime') = ?
          GROUP BY monthStr
-         ORDER BY monthStr ASC`
+         ORDER BY monthStr ASC`,
+        [currentYear.toString()]
     );
 
-    // Generate month labels
+    // Calendar year order: Jan, Feb, Mar, Apr, May, Jun, Jul, Aug, Sep, Oct, Nov, Dec
     const monthLabels = ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'];
     const result: VolumeDataPoint[] = [];
-    const today = new Date();
 
-    for (let i = months - 1; i >= 0; i--) {
-        const date = new Date(today.getFullYear(), today.getMonth() - i, 1);
-        const monthStr = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+    for (let i = 0; i < 12; i++) {
+        const monthStr = `${currentYear}-${(i + 1).toString().padStart(2, '0')}`;
 
         const row = rows.find(r => r.monthStr === monthStr);
         result.push({
-            label: monthLabels[date.getMonth()],
+            label: monthLabels[i],
             value: row?.totalVolume || 0,
-            isHighlighted: i === 0, // Current month is highlighted
+            isHighlighted: i === currentMonth, // Current month is highlighted
         });
     }
 
