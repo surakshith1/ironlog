@@ -1,85 +1,137 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { TrendingUp } from 'lucide-react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { TrendingUp, TrendingDown, Minus } from 'lucide-react-native';
 import { SegmentedControl } from '../display/SegmentedControl';
 import { ProgressBarChart } from '../display/ProgressBarChart';
 import { theme } from '../../constants/theme';
-
-// Dummy data for each time period
-const WEEKLY_DATA = [
-    { label: 'M', value: 40 },
-    { label: 'T', value: 75 },
-    { label: 'W', value: 30 },
-    { label: 'T', value: 95, isHighlighted: true },
-    { label: 'F', value: 50 },
-    { label: 'S', value: 20 },
-    { label: 'S', value: 60 },
-];
-
-const MONTHLY_DATA = [
-    { label: 'W1', value: 65 },
-    { label: 'W2', value: 80 },
-    { label: 'W3', value: 55, isHighlighted: true },
-    { label: 'W4', value: 90 },
-];
-
-const YEARLY_DATA = [
-    { label: 'J', value: 40 },
-    { label: 'F', value: 55 },
-    { label: 'M', value: 70 },
-    { label: 'A', value: 60 },
-    { label: 'M', value: 85 },
-    { label: 'J', value: 75 },
-    { label: 'J', value: 90 },
-    { label: 'A', value: 80 },
-    { label: 'S', value: 65 },
-    { label: 'O', value: 95, isHighlighted: true },
-    { label: 'N', value: 70 },
-    { label: 'D', value: 50 },
-];
+import {
+    getVolumeByDay,
+    getVolumeByWeek,
+    getVolumeByMonth,
+    getVolumesWithChange,
+    VolumeDataPoint,
+} from '../../api/services/exerciseLogDatabase';
 
 const PERIOD_OPTIONS = ['Week', 'Month', 'Year'];
+const PERIOD_TYPES: ('week' | 'month' | 'year')[] = ['week', 'month', 'year'];
 
-const VOLUME_BY_PERIOD = {
-    0: { value: '12,450', change: '+15%' },
-    1: { value: '48,200', change: '+8%' },
-    2: { value: '580,500', change: '+23%' },
-};
-
-const DATA_BY_PERIOD = [WEEKLY_DATA, MONTHLY_DATA, YEARLY_DATA];
+/**
+ * Format volume number with commas for display.
+ */
+function formatVolume(volume: number): string {
+    return volume.toLocaleString('en-US', { maximumFractionDigits: 0 });
+}
 
 /**
  * Analytics card showing workout volume over time with period switcher.
+ * Fetches real data from SQLite database.
  */
 export function AnalyticsCard() {
     const [selectedPeriod, setSelectedPeriod] = useState(0);
+    const [isLoading, setIsLoading] = useState(true);
+    const [chartData, setChartData] = useState<VolumeDataPoint[]>([]);
+    const [volumeInfo, setVolumeInfo] = useState({ volume: 0, change: 0 });
 
-    const currentData = DATA_BY_PERIOD[selectedPeriod];
-    const currentVolume = VOLUME_BY_PERIOD[selectedPeriod as keyof typeof VOLUME_BY_PERIOD];
+    const fetchData = useCallback(async () => {
+        setIsLoading(true);
+        try {
+            const periodType = PERIOD_TYPES[selectedPeriod];
+
+            // Fetch chart data based on selected period
+            let data: VolumeDataPoint[];
+            switch (periodType) {
+                case 'week':
+                    data = await getVolumeByDay(7);
+                    break;
+                case 'month':
+                    data = await getVolumeByWeek(4);
+                    break;
+                case 'year':
+                    data = await getVolumeByMonth(12);
+                    break;
+            }
+
+            // Fetch volume with change percentage
+            const volumeData = await getVolumesWithChange(periodType);
+
+            setChartData(data);
+            setVolumeInfo({
+                volume: volumeData.currentVolume,
+                change: volumeData.percentChange,
+            });
+        } catch (error) {
+            console.error('Error fetching analytics data:', error);
+            setChartData([]);
+            setVolumeInfo({ volume: 0, change: 0 });
+        } finally {
+            setIsLoading(false);
+        }
+    }, [selectedPeriod]);
+
+    useEffect(() => {
+        fetchData();
+    }, [fetchData]);
+
+    const handlePeriodChange = (index: number) => {
+        setSelectedPeriod(index);
+    };
+
+    const renderTrendIcon = () => {
+        if (volumeInfo.change > 0) {
+            return <TrendingUp size={14} color={theme.colors.success} />;
+        } else if (volumeInfo.change < 0) {
+            return <TrendingDown size={14} color={theme.colors.error} />;
+        }
+        return <Minus size={14} color={theme.colors.textSecondary} />;
+    };
+
+    const getTrendColor = () => {
+        if (volumeInfo.change > 0) return theme.colors.success;
+        if (volumeInfo.change < 0) return theme.colors.error;
+        return theme.colors.textSecondary;
+    };
+
+    const formatChange = () => {
+        if (volumeInfo.change === 0) return '0%';
+        const sign = volumeInfo.change > 0 ? '+' : '';
+        return `${sign}${volumeInfo.change}%`;
+    };
 
     return (
         <View style={styles.container}>
             <SegmentedControl
                 options={PERIOD_OPTIONS}
                 selectedIndex={selectedPeriod}
-                onSelect={setSelectedPeriod}
+                onSelect={handlePeriodChange}
             />
 
             <View style={styles.statsRow}>
                 <View>
                     <Text style={styles.statsLabel}>Total Volume</Text>
                     <View style={styles.valueRow}>
-                        <Text style={styles.statsValue}>{currentVolume.value}</Text>
-                        <Text style={styles.statsUnit}>lbs</Text>
+                        {isLoading ? (
+                            <ActivityIndicator size="small" color={theme.colors.primary} />
+                        ) : (
+                            <>
+                                <Text style={styles.statsValue}>
+                                    {formatVolume(volumeInfo.volume)}
+                                </Text>
+                                <Text style={styles.statsUnit}>lbs</Text>
+                            </>
+                        )}
                     </View>
                 </View>
-                <View style={styles.trendBadge}>
-                    <TrendingUp size={14} color={theme.colors.success} />
-                    <Text style={styles.trendText}>{currentVolume.change}</Text>
-                </View>
+                {!isLoading && (
+                    <View style={styles.trendBadge}>
+                        {renderTrendIcon()}
+                        <Text style={[styles.trendText, { color: getTrendColor() }]}>
+                            {formatChange()}
+                        </Text>
+                    </View>
+                )}
             </View>
 
-            <ProgressBarChart data={currentData} height={140} />
+            <ProgressBarChart data={chartData} height={140} />
         </View>
     );
 }
@@ -106,6 +158,7 @@ const styles = StyleSheet.create({
         alignItems: 'baseline',
         gap: 4,
         marginTop: 4,
+        minHeight: 34, // Prevent layout shift during loading
     },
     statsValue: {
         fontSize: 28,
@@ -129,6 +182,5 @@ const styles = StyleSheet.create({
     trendText: {
         fontSize: 12,
         fontWeight: '700',
-        color: theme.colors.success,
     },
 });

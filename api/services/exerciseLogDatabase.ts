@@ -419,9 +419,6 @@ export async function getExerciseProgression(
     return rows;
 }
 
-/**
- * Get all workout sessions (for history view).
- */
 export async function getAllWorkoutSessions(limit: number = 50): Promise<WorkoutSession[]> {
     const database = await getDatabase();
 
@@ -440,3 +437,314 @@ export async function getAllWorkoutSessions(limit: number = 50): Promise<Workout
 
     return rows;
 }
+
+// ============================================================================
+// Dashboard Analytics Functions
+// ============================================================================
+
+/**
+ * Chart data point for volume visualization.
+ */
+export interface VolumeDataPoint {
+    label: string;
+    value: number;
+    isHighlighted?: boolean;
+}
+
+/**
+ * Recent PR record for dashboard display.
+ */
+export interface RecentPRRecord {
+    id: string;
+    exerciseId: string;
+    exerciseName: string;
+    date: string;
+    weight: number;
+    reps: number;
+    isPR: boolean;
+}
+
+/**
+ * Calculate the current workout streak (consecutive days with workouts).
+ * Returns 0 if no workouts or streak is broken.
+ */
+export async function getWorkoutStreak(): Promise<number> {
+    const database = await getDatabase();
+
+    // Get distinct workout dates, ordered most recent first
+    const rows = await database.getAllAsync<{ workoutDate: string }>(
+        `SELECT DISTINCT date(finishedAt) as workoutDate
+         FROM workout_sessions
+         ORDER BY workoutDate DESC`
+    );
+
+    if (rows.length === 0) return 0;
+
+    let streak = 0;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Check each date starting from today or yesterday
+    let checkDate = new Date(today);
+
+    // If no workout today, check if streak can start from yesterday
+    const todayStr = checkDate.toISOString().split('T')[0];
+    const hasWorkoutToday = rows.some(r => r.workoutDate === todayStr);
+
+    if (!hasWorkoutToday) {
+        // Check yesterday
+        checkDate.setDate(checkDate.getDate() - 1);
+        const yesterdayStr = checkDate.toISOString().split('T')[0];
+        const hasWorkoutYesterday = rows.some(r => r.workoutDate === yesterdayStr);
+        if (!hasWorkoutYesterday) {
+            return 0; // Streak broken
+        }
+    }
+
+    // Count consecutive days
+    for (const row of rows) {
+        const checkDateStr = checkDate.toISOString().split('T')[0];
+        if (row.workoutDate === checkDateStr) {
+            streak++;
+            checkDate.setDate(checkDate.getDate() - 1);
+        } else if (row.workoutDate < checkDateStr) {
+            // Gap found, streak ends
+            break;
+        }
+    }
+
+    return streak;
+}
+
+/**
+ * Get volume data by day for the last N days (for weekly chart).
+ * Returns data for each day with day-of-week labels.
+ */
+export async function getVolumeByDay(days: number = 7): Promise<VolumeDataPoint[]> {
+    const database = await getDatabase();
+
+    const rows = await database.getAllAsync<{
+        dayDate: string;
+        dayOfWeek: string;
+        totalVolume: number;
+    }>(
+        `SELECT 
+            date(loggedAt) as dayDate,
+            strftime('%w', loggedAt) as dayOfWeek,
+            SUM(volume) as totalVolume
+         FROM logged_sets
+         WHERE loggedAt >= datetime('now', '-${days} days')
+         GROUP BY dayDate
+         ORDER BY dayDate ASC`
+    );
+
+    // Create a map for all days in the period
+    const dayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+    const result: VolumeDataPoint[] = [];
+    const today = new Date();
+
+    for (let i = days - 1; i >= 0; i--) {
+        const date = new Date(today);
+        date.setDate(date.getDate() - i);
+        const dateStr = date.toISOString().split('T')[0];
+        const dayOfWeek = date.getDay();
+
+        const row = rows.find(r => r.dayDate === dateStr);
+        result.push({
+            label: dayLabels[dayOfWeek],
+            value: row?.totalVolume || 0,
+            isHighlighted: i === 0, // Today is highlighted
+        });
+    }
+
+    return result;
+}
+
+/**
+ * Get volume data by week for the last N weeks (for monthly chart).
+ */
+export async function getVolumeByWeek(weeks: number = 4): Promise<VolumeDataPoint[]> {
+    const database = await getDatabase();
+
+    const rows = await database.getAllAsync<{
+        weekNum: string;
+        totalVolume: number;
+    }>(
+        `SELECT 
+            strftime('%Y-%W', loggedAt) as weekNum,
+            SUM(volume) as totalVolume
+         FROM logged_sets
+         WHERE loggedAt >= datetime('now', '-${weeks * 7} days')
+         GROUP BY weekNum
+         ORDER BY weekNum ASC`
+    );
+
+    // Generate week labels
+    const result: VolumeDataPoint[] = [];
+    const today = new Date();
+
+    for (let i = weeks - 1; i >= 0; i--) {
+        const date = new Date(today);
+        date.setDate(date.getDate() - i * 7);
+        const weekNum = getISOWeek(date);
+        const weekStr = `${date.getFullYear()}-${weekNum.toString().padStart(2, '0')}`;
+
+        const row = rows.find(r => r.weekNum === weekStr);
+        result.push({
+            label: `W${weeks - i}`,
+            value: row?.totalVolume || 0,
+            isHighlighted: i === 0, // Current week is highlighted
+        });
+    }
+
+    return result;
+}
+
+/**
+ * Get ISO week number for a date.
+ */
+function getISOWeek(date: Date): number {
+    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    const dayNum = d.getUTCDay() || 7;
+    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+}
+
+/**
+ * Get volume data by month for the last N months (for yearly chart).
+ */
+export async function getVolumeByMonth(months: number = 12): Promise<VolumeDataPoint[]> {
+    const database = await getDatabase();
+
+    const rows = await database.getAllAsync<{
+        monthStr: string;
+        totalVolume: number;
+    }>(
+        `SELECT 
+            strftime('%Y-%m', loggedAt) as monthStr,
+            SUM(volume) as totalVolume
+         FROM logged_sets
+         WHERE loggedAt >= datetime('now', '-${months} months')
+         GROUP BY monthStr
+         ORDER BY monthStr ASC`
+    );
+
+    // Generate month labels
+    const monthLabels = ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'];
+    const result: VolumeDataPoint[] = [];
+    const today = new Date();
+
+    for (let i = months - 1; i >= 0; i--) {
+        const date = new Date(today.getFullYear(), today.getMonth() - i, 1);
+        const monthStr = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+
+        const row = rows.find(r => r.monthStr === monthStr);
+        result.push({
+            label: monthLabels[date.getMonth()],
+            value: row?.totalVolume || 0,
+            isHighlighted: i === 0, // Current month is highlighted
+        });
+    }
+
+    return result;
+}
+
+/**
+ * Get recent personal records for dashboard display (max 5).
+ */
+export async function getRecentPRRecords(limit: number = 5): Promise<RecentPRRecord[]> {
+    const database = await getDatabase();
+
+    const rows = await database.getAllAsync<{
+        id: string;
+        exerciseId: string;
+        loggedAt: string;
+        weight: number;
+        reps: number;
+        isPR: number;
+    }>(
+        `SELECT id, exerciseId, loggedAt, weight, reps, isPR
+         FROM logged_sets
+         WHERE isPR = 1
+         ORDER BY loggedAt DESC
+         LIMIT ?`,
+        [limit]
+    );
+
+    // Map exercise IDs to readable names (convert underscore to space, title case)
+    return rows.map(row => ({
+        id: row.id,
+        exerciseId: row.exerciseId,
+        exerciseName: row.exerciseId
+            .split('_')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+            .join(' '),
+        date: formatDateShort(row.loggedAt),
+        weight: row.weight,
+        reps: row.reps,
+        isPR: row.isPR === 1,
+    }));
+}
+
+/**
+ * Format an ISO date string to short display format (e.g., "Jan 15").
+ */
+function formatDateShort(isoDate: string): string {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const date = new Date(isoDate);
+    return `${months[date.getMonth()]} ${date.getDate()}`;
+}
+
+/**
+ * Get total volume for a specific period and the previous period (for % change).
+ */
+export async function getVolumesWithChange(
+    periodType: 'week' | 'month' | 'year'
+): Promise<{ currentVolume: number; previousVolume: number; percentChange: number }> {
+    const database = await getDatabase();
+
+    let currentDays: number;
+    let previousOffset: string;
+
+    switch (periodType) {
+        case 'week':
+            currentDays = 7;
+            previousOffset = '-14 days';
+            break;
+        case 'month':
+            currentDays = 30;
+            previousOffset = '-60 days';
+            break;
+        case 'year':
+            currentDays = 365;
+            previousOffset = '-730 days';
+            break;
+    }
+
+    const currentResult = await database.getFirstAsync<{ total: number | null }>(
+        `SELECT SUM(volume) as total
+         FROM logged_sets
+         WHERE loggedAt >= datetime('now', '-${currentDays} days')`
+    );
+
+    const previousResult = await database.getFirstAsync<{ total: number | null }>(
+        `SELECT SUM(volume) as total
+         FROM logged_sets
+         WHERE loggedAt >= datetime('now', '${previousOffset}')
+           AND loggedAt < datetime('now', '-${currentDays} days')`
+    );
+
+    const currentVolume = currentResult?.total || 0;
+    const previousVolume = previousResult?.total || 0;
+
+    let percentChange = 0;
+    if (previousVolume > 0) {
+        percentChange = Math.round(((currentVolume - previousVolume) / previousVolume) * 100);
+    } else if (currentVolume > 0) {
+        percentChange = 100; // 100% increase from nothing
+    }
+
+    return { currentVolume, previousVolume, percentChange };
+}
+

@@ -1,44 +1,53 @@
-import React from 'react';
-import { View, ScrollView, StyleSheet } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, ScrollView, StyleSheet, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { ThemedText } from '../components/display/Typography';
 import { StreakBadge } from '../components/display/StreakBadge';
 import { AnalyticsCard } from '../components/business/AnalyticsCard';
 import { RecordCard } from '../components/display/RecordCard';
 import { theme } from '../constants/theme';
+import {
+    getWorkoutStreak,
+    getRecentPRRecords,
+    RecentPRRecord,
+} from '../api/services/exerciseLogDatabase';
 
-// Dummy data for recent records
-const RECENT_RECORDS = [
-    {
-        id: '1',
-        exercise: 'Bench Press',
-        date: 'Oct 24',
-        value: '225 lbs',
-        unit: '',
-        iconType: 'weight' as const,
-        isNewMax: true,
-    },
-    {
-        id: '2',
-        exercise: 'Deadlift',
-        date: 'Oct 22',
-        value: '315 lbs',
-        unit: '5 Reps',
-        iconType: 'reps' as const,
-        isNewMax: false,
-    },
-    {
-        id: '3',
-        exercise: '5K Run',
-        date: 'Oct 20',
-        value: '22:30',
-        unit: 'Time',
-        iconType: 'time' as const,
-        isNewMax: false,
-    },
-];
-
+/**
+ * Home dashboard screen displaying streak, analytics, and recent records.
+ */
 export function HomeScreen() {
+    const [streak, setStreak] = useState(0);
+    const [recentRecords, setRecentRecords] = useState<RecentPRRecord[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    const fetchDashboardData = useCallback(async () => {
+        try {
+            const [streakCount, records] = await Promise.all([
+                getWorkoutStreak(),
+                getRecentPRRecords(5),
+            ]);
+            setStreak(streakCount);
+            setRecentRecords(records);
+        } catch (error) {
+            console.error('Error fetching dashboard data:', error);
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
+    // Fetch data on initial mount
+    useEffect(() => {
+        fetchDashboardData();
+    }, [fetchDashboardData]);
+
+    // Refresh data when screen comes into focus
+    useFocusEffect(
+        useCallback(() => {
+            fetchDashboardData();
+        }, [fetchDashboardData])
+    );
+
     return (
         <SafeAreaView style={styles.safeArea} edges={['bottom']}>
             <ScrollView
@@ -48,7 +57,7 @@ export function HomeScreen() {
             >
                 {/* Streak Badge Section */}
                 <View style={styles.streakSection}>
-                    <StreakBadge streakDays={12} />
+                    <StreakBadge streakDays={streak} />
                 </View>
 
                 {/* Analytics Card */}
@@ -62,17 +71,25 @@ export function HomeScreen() {
                         Recent Records
                     </ThemedText>
                     <View style={styles.recordsList}>
-                        {RECENT_RECORDS.map((record) => (
-                            <RecordCard
-                                key={record.id}
-                                exercise={record.exercise}
-                                date={record.date}
-                                value={record.value}
-                                unit={record.unit}
-                                iconType={record.iconType}
-                                isNewMax={record.isNewMax}
-                            />
-                        ))}
+                        {recentRecords.length === 0 && !isLoading ? (
+                            <View style={styles.emptyState}>
+                                <Text style={styles.emptyStateText}>
+                                    No records yet. Complete a workout to see your PRs here!
+                                </Text>
+                            </View>
+                        ) : (
+                            recentRecords.map((record) => (
+                                <RecordCard
+                                    key={record.id}
+                                    exercise={record.exerciseName}
+                                    date={record.date}
+                                    value={`${record.weight} lbs`}
+                                    unit={`${record.reps} Reps`}
+                                    iconType="weight"
+                                    isNewMax={true}
+                                />
+                            ))
+                        )}
                     </View>
                 </View>
             </ScrollView>
@@ -115,5 +132,16 @@ const styles = StyleSheet.create({
     },
     recordsList: {
         gap: 12,
+    },
+    emptyState: {
+        backgroundColor: theme.colors.surface,
+        borderRadius: 16,
+        padding: theme.spacing.large,
+        alignItems: 'center',
+    },
+    emptyStateText: {
+        fontSize: 14,
+        color: theme.colors.textSecondary,
+        textAlign: 'center',
     },
 });
