@@ -11,11 +11,15 @@ import { ExerciseHistoryModal } from '../components/display/ExerciseHistoryModal
 import { SetData } from '../components/business/SetRow';
 import { useWorkoutStore } from '../store/workoutStore';
 import { useProgramStore } from '../store/programStore';
+import { useExerciseLogStore } from '../store/exerciseLogStore';
 import { useNavigation } from '@react-navigation/native';
 import { getExerciseById } from '../api/services/exerciseService';
-import { getExerciseHistory, getExerciseStats } from '../api/services/historyService';
+import { getExerciseHistoryAsync, getExerciseStatsAsync } from '../api/services/historyService';
 import { Exercise } from '../api/models/exercise';
+import { ExerciseLogEntry, ExerciseStats } from '../api/models/history';
 import { ProgramExercise, Workout as ProgramWorkout } from '../api/models/program';
+import { SetLogInput } from '../api/models/exerciseLog';
+import { hasExerciseHistory } from '../api/services/exerciseLogDatabase';
 
 // --- Workout Data Types ---
 interface WorkoutExercise {
@@ -80,6 +84,8 @@ export function CurrentWorkoutScreen({ route }: { route?: { params?: { programId
     const startTimeHook = useWorkoutStore(state => state.startTime);
     const startWorkout = useWorkoutStore(state => state.startWorkout);
     const finishWorkout = useWorkoutStore(state => state.finishWorkout);
+    const getWorkoutIndex = useWorkoutStore(state => state.getWorkoutIndex);
+    const setWorkoutIndex = useWorkoutStore(state => state.setWorkoutIndex);
 
     // Global State - Program Store
     const getProgram = useProgramStore(state => state.getProgram);
@@ -91,20 +97,37 @@ export function CurrentWorkoutScreen({ route }: { route?: { params?: { programId
     // Check if viewing the currently active program (matches activeProgramId)
     const isActiveProgram = displayProgramId === activeProgramId;
 
+    // Get current workout index for this program (for rotation)
+    const currentWorkoutIndex = displayProgramId ? getWorkoutIndex(displayProgramId) : 0;
+
+    // Create rotated workout list: current workout first, then others in order
+    const rotatedWorkouts = useMemo(() => {
+        if (!displayProgram) return [];
+        const workouts = displayProgram.workouts;
+        if (workouts.length <= 1) return workouts;
+
+        // Rotate array so currentWorkoutIndex is first
+        const validIndex = currentWorkoutIndex % workouts.length;
+        return [
+            ...workouts.slice(validIndex),
+            ...workouts.slice(0, validIndex),
+        ];
+    }, [displayProgram, currentWorkoutIndex]);
+
     // Local State - Tracks exercise data per workout
     const [workoutStates, setWorkoutStates] = useState<LocalWorkoutState>({});
 
-    // Get current selected workout
+    // Get current selected workout (first in rotated list, or use activeWorkoutId if set)
     const selectedWorkout = useMemo(() => {
-        if (!displayProgram) return undefined;
+        if (!displayProgram || rotatedWorkouts.length === 0) return undefined;
         if (activeWorkoutId) {
-            const found = displayProgram.workouts.find((w: { id: string }) => w.id === activeWorkoutId);
-            // If the activeWorkoutId doesn't match any workout in this program, fall back to first
+            const found = rotatedWorkouts.find((w: { id: string }) => w.id === activeWorkoutId);
+            // If the activeWorkoutId doesn't match any workout in this program, fall back to first in rotated list
             if (found) return found;
         }
-        // Default to first workout if none selected or no match found
-        return displayProgram.workouts[0];
-    }, [displayProgram, activeWorkoutId]);
+        // Default to first workout in rotated list (the "current" workout)
+        return rotatedWorkouts[0];
+    }, [displayProgram, rotatedWorkouts, activeWorkoutId]);
 
     // Initialize exercise state when workout changes
     useEffect(() => {
@@ -127,16 +150,30 @@ export function CurrentWorkoutScreen({ route }: { route?: { params?: { programId
     const [showDetailModal, setShowDetailModal] = useState(false);
     const [showHistoryModal, setShowHistoryModal] = useState(false);
 
-    // Get history data for selected exercise
-    const historyEntries = useMemo(() => {
-        if (!selectedExercise) return [];
-        return getExerciseHistory(selectedExercise.id);
-    }, [selectedExercise]);
+    // History data for the full history modal (async)
+    const [historyEntries, setHistoryEntries] = useState<ExerciseLogEntry[]>([]);
+    const [stats, setStats] = useState<ExerciseStats>({ personalBest: 0, totalVolume: 0, unit: 'lbs' });
 
-    const stats = useMemo(() => {
-        if (!selectedExercise) return { personalBest: 0, totalVolume: 0, unit: 'lbs' as const };
-        return getExerciseStats(selectedExercise.id);
-    }, [selectedExercise]);
+    // Load full history when opening full history modal
+    const loadFullHistory = useCallback(async (exerciseId: string) => {
+        try {
+            const hasHistory = await hasExerciseHistory(exerciseId);
+            if (hasHistory) {
+                const [history, exerciseStats] = await Promise.all([
+                    getExerciseHistoryAsync(exerciseId),
+                    getExerciseStatsAsync(exerciseId),
+                ]);
+                setHistoryEntries(history);
+                setStats(exerciseStats);
+            } else {
+                setHistoryEntries([]);
+                setStats({ personalBest: 0, totalVolume: 0, unit: 'lbs' });
+            }
+        } catch (error) {
+            console.error('Error loading history:', error);
+            setHistoryEntries([]);
+        }
+    }, []);
 
     // Handlers
     const handleStartWorkout = () => {
@@ -150,6 +187,10 @@ export function CurrentWorkoutScreen({ route }: { route?: { params?: { programId
         startWorkout();
     };
 
+    // Exercise Log Store
+    const logCompletedWorkout = useExerciseLogStore(state => state.logCompletedWorkout);
+    const isLogging = useExerciseLogStore(state => state.isLogging);
+
     const handleFinishWorkout = () => {
         Alert.alert(
             "Finish Workout",
@@ -158,8 +199,44 @@ export function CurrentWorkoutScreen({ route }: { route?: { params?: { programId
                 { text: "Cancel", style: "cancel" },
                 {
                     text: "Finish",
-                    onPress: () => {
-                        finishWorkout();
+                    onPress: async () => {
+                        // Collect all completed sets from current exercises
+                        const setsToLog: SetLogInput[] = [];
+
+                        currentExercises.forEach(exercise => {
+                            exercise.sets.forEach(set => {
+                                if (set.isCompleted) {
+                                    const weight = parseFloat(set.weight) || 0;
+                                    const reps = parseInt(set.reps, 10) || 0;
+
+                                    if (weight > 0 && reps > 0) {
+                                        setsToLog.push({
+                                            exerciseId: exercise.id,
+                                            setNumber: set.setNumber,
+                                            weight,
+                                            reps,
+                                        });
+                                    }
+                                }
+                            });
+                        });
+
+                        // Log the workout if there are completed sets
+                        if (setsToLog.length > 0 && displayProgramId && selectedWorkout && startTimeHook) {
+                            const success = await logCompletedWorkout({
+                                programId: displayProgramId,
+                                workoutId: selectedWorkout.id,
+                                workoutName: selectedWorkout.name,
+                                startedAt: startTimeHook,
+                                sets: setsToLog,
+                            });
+
+                            if (!success) {
+                                Alert.alert('Warning', 'Workout data may not have been saved properly.');
+                            }
+                        }
+
+                        finishWorkout(displayProgram?.workouts.length);
                         navigation.goBack();
                     }
                 }
@@ -249,10 +326,13 @@ export function CurrentWorkoutScreen({ route }: { route?: { params?: { programId
     // Handle "View Full History" button
     const handleViewFullHistory = useCallback(() => {
         setShowDetailModal(false);
+        if (selectedExercise) {
+            loadFullHistory(selectedExercise.id);
+        }
         setTimeout(() => {
             setShowHistoryModal(true);
         }, 400);
-    }, []);
+    }, [selectedExercise, loadFullHistory]);
 
     // Handle closing history modal
     const handleCloseHistoryModal = useCallback(() => {
@@ -296,9 +376,9 @@ export function CurrentWorkoutScreen({ route }: { route?: { params?: { programId
                     ]}
                     keyboardShouldPersistTaps="handled"
                 >
-                    {/* Routine Tabs - Dynamic from program workouts */}
+                    {/* Routine Tabs - Dynamic from program workouts (rotated order) */}
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabsContainer}>
-                        {displayProgram.workouts.map((workout: { id: string; name: string }) => {
+                        {rotatedWorkouts.map((workout: { id: string; name: string }) => {
                             const isActive = workout.id === selectedWorkout.id;
                             return (
                                 <TouchableOpacity

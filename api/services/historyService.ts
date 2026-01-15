@@ -1,16 +1,22 @@
 /**
  * History Service
- * Provides dummy data for exercise history and stats.
- * In a real app, this would fetch from local storage or API.
+ * Provides exercise history and stats from the database.
+ * Falls back to dummy data when no history exists.
  */
 
 import { ExerciseLogEntry, ExerciseStats } from '../models/history';
+import {
+    getExerciseHistoryDb,
+    getRecentHistoryDb,
+    getExerciseStatsDb,
+    hasExerciseHistory,
+} from './exerciseLogDatabase';
 
 /**
  * Generates dummy exercise history data.
- * Creates realistic-looking workout logs with progressive overload.
+ * Used as fallback when no real history exists.
  */
-export function getExerciseHistory(exerciseId: string): ExerciseLogEntry[] {
+function generateDummyHistory(exerciseId: string): ExerciseLogEntry[] {
     // Generate consistent dummy data based on exercise ID
     const seed = exerciseId.charCodeAt(0) + (exerciseId.charCodeAt(1) || 0);
     const baseWeight = 100 + (seed % 150); // Base weight between 100-250
@@ -46,7 +52,77 @@ export function getExerciseHistory(exerciseId: string): ExerciseLogEntry[] {
 }
 
 /**
- * Gets a limited number of recent history entries.
+ * Get exercise history, using real data if available, otherwise dummy data.
+ */
+export async function getExerciseHistoryAsync(exerciseId: string): Promise<ExerciseLogEntry[]> {
+    try {
+        const hasHistory = await hasExerciseHistory(exerciseId);
+        if (hasHistory) {
+            return await getExerciseHistoryDb(exerciseId);
+        }
+    } catch (error) {
+        console.error('Error fetching exercise history:', error);
+    }
+    return generateDummyHistory(exerciseId);
+}
+
+/**
+ * Get recent exercise history (limited entries).
+ */
+export async function getRecentHistoryAsync(
+    exerciseId: string,
+    limit: number = 5
+): Promise<ExerciseLogEntry[]> {
+    try {
+        const hasHistory = await hasExerciseHistory(exerciseId);
+        if (hasHistory) {
+            return await getRecentHistoryDb(exerciseId, limit);
+        }
+    } catch (error) {
+        console.error('Error fetching recent history:', error);
+    }
+    return generateDummyHistory(exerciseId).slice(0, limit);
+}
+
+/**
+ * Get aggregated stats for an exercise.
+ */
+export async function getExerciseStatsAsync(exerciseId: string): Promise<ExerciseStats> {
+    try {
+        const hasHistory = await hasExerciseHistory(exerciseId);
+        if (hasHistory) {
+            return await getExerciseStatsDb(exerciseId);
+        }
+    } catch (error) {
+        console.error('Error fetching exercise stats:', error);
+    }
+
+    // Generate dummy stats
+    const history = generateDummyHistory(exerciseId);
+    const personalBest = Math.max(...history.map((e) => e.weight));
+    const totalVolume = history.reduce((sum, e) => sum + e.weight * e.reps, 0);
+
+    return {
+        personalBest,
+        totalVolume,
+        unit: 'lbs',
+    };
+}
+
+// --- Synchronous versions for backward compatibility ---
+// These use dummy data only (for components that can't use async)
+
+/**
+ * Gets exercise history synchronously (dummy data only).
+ * @deprecated Use getExerciseHistoryAsync for real data
+ */
+export function getExerciseHistory(exerciseId: string): ExerciseLogEntry[] {
+    return generateDummyHistory(exerciseId);
+}
+
+/**
+ * Gets a limited number of recent history entries synchronously.
+ * @deprecated Use getRecentHistoryAsync for real data
  */
 export function getRecentHistory(
     exerciseId: string,
@@ -56,7 +132,8 @@ export function getRecentHistory(
 }
 
 /**
- * Gets aggregated stats for an exercise.
+ * Gets aggregated stats for an exercise synchronously.
+ * @deprecated Use getExerciseStatsAsync for real data
  */
 export function getExerciseStats(exerciseId: string): ExerciseStats {
     const history = getExerciseHistory(exerciseId);

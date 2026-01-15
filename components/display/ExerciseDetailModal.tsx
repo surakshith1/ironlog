@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Modal,
     View,
@@ -7,18 +7,21 @@ import {
     ScrollView,
     StyleSheet,
     Dimensions,
+    ActivityIndicator,
 } from 'react-native';
 import { theme } from '../../constants/theme';
 import { Exercise } from '../../api/models/exercise';
+import { ExerciseLogEntry, ExerciseStats } from '../../api/models/history';
 import { Tag } from './Tag';
 import { CollapsibleSection } from './CollapsibleSection';
 import { StatCard } from './StatCard';
 import { HistoryTable } from './HistoryTable';
 import {
-    getRecentHistory,
-    getExerciseStats,
+    getRecentHistoryAsync,
+    getExerciseStatsAsync,
     formatVolume,
 } from '../../api/services/historyService';
+import { hasExerciseHistory } from '../../api/services/exerciseLogDatabase';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -31,18 +34,6 @@ interface ExerciseDetailModalProps {
     onClose: () => void;
     /** Callback when "View Full History" is pressed */
     onViewFullHistory: () => void;
-}
-
-/**
- * Splits exercise name to highlight the last word in primary color.
- */
-function splitExerciseName(name: string): { prefix: string; highlight: string } {
-    const words = name.split(' ');
-    if (words.length <= 1) {
-        return { prefix: '', highlight: name };
-    }
-    const highlight = words.pop() || '';
-    return { prefix: words.join(' ') + ' ', highlight };
 }
 
 /**
@@ -62,11 +53,52 @@ export function ExerciseDetailModal({
     onClose,
     onViewFullHistory,
 }: ExerciseDetailModalProps) {
-    if (!exercise) return null;
+    // State for async data
+    const [isLoading, setIsLoading] = useState(true);
+    const [hasRealHistory, setHasRealHistory] = useState(false);
+    const [recentHistory, setRecentHistory] = useState<ExerciseLogEntry[]>([]);
+    const [stats, setStats] = useState<ExerciseStats>({
+        personalBest: 0,
+        totalVolume: 0,
+        unit: 'lbs',
+    });
 
-    const { prefix, highlight } = splitExerciseName(exercise.name);
-    const recentHistory = getRecentHistory(exercise.id);
-    const stats = getExerciseStats(exercise.id);
+    // Load data when modal opens or exercise changes
+    useEffect(() => {
+        if (visible && exercise) {
+            loadExerciseData(exercise.id);
+        }
+    }, [visible, exercise?.id]);
+
+    const loadExerciseData = async (exerciseId: string) => {
+        setIsLoading(true);
+        try {
+            // Check if real history exists
+            const hasHistory = await hasExerciseHistory(exerciseId);
+            setHasRealHistory(hasHistory);
+
+            // Load history (will return empty array if no real data)
+            if (hasHistory) {
+                const [historyData, statsData] = await Promise.all([
+                    getRecentHistoryAsync(exerciseId, 5),
+                    getExerciseStatsAsync(exerciseId),
+                ]);
+                setRecentHistory(historyData);
+                setStats(statsData);
+            } else {
+                // No real history - show empty state
+                setRecentHistory([]);
+                setStats({ personalBest: 0, totalVolume: 0, unit: 'lbs' });
+            }
+        } catch (error) {
+            console.error('Error loading exercise data:', error);
+            setRecentHistory([]);
+            setStats({ personalBest: 0, totalVolume: 0, unit: 'lbs' });
+        }
+        setIsLoading(false);
+    };
+
+    if (!exercise) return null;
 
     // Format instructions as single paragraph
     const instructionsText = exercise.instructions.join(' ');
@@ -124,11 +156,11 @@ export function ExerciseDetailModal({
                         )}
                     </View>
 
-                    {/* Instructions */}
+                    {/* Instructions - Default collapsed */}
                     <CollapsibleSection
                         title="Instructions"
                         icon="📋"
-                        defaultOpen={true}
+                        defaultOpen={false}
                         style={styles.section}
                     >
                         <Text style={styles.instructionsText}>
@@ -145,43 +177,61 @@ export function ExerciseDetailModal({
                             <Text style={styles.historyIcon}>📊</Text>
                             <Text style={styles.historyTitle}>History Log</Text>
                         </View>
-                        <Text style={styles.unitLabel}>
-                            Unit: {stats.unit.toUpperCase()}
-                        </Text>
+                        {hasRealHistory && (
+                            <Text style={styles.unitLabel}>
+                                Unit: {stats.unit.toUpperCase()}
+                            </Text>
+                        )}
                     </View>
 
-                    <HistoryTable
-                        entries={recentHistory}
-                        maxRows={5}
-                        unit={stats.unit}
-                        style={styles.section}
-                    />
+                    {isLoading ? (
+                        <View style={styles.loadingContainer}>
+                            <ActivityIndicator size="small" color={theme.colors.primary} />
+                        </View>
+                    ) : hasRealHistory ? (
+                        <>
+                            <HistoryTable
+                                entries={recentHistory}
+                                maxRows={5}
+                                unit={stats.unit}
+                                style={styles.section}
+                            />
 
-                    {/* View Full History Button */}
-                    <TouchableOpacity
-                        style={styles.viewHistoryButton}
-                        onPress={onViewFullHistory}
-                    >
-                        <Text style={styles.viewHistoryText}>
-                            View Full History
-                        </Text>
-                    </TouchableOpacity>
+                            {/* View Full History Button - Only show if has history */}
+                            <TouchableOpacity
+                                style={styles.viewHistoryButton}
+                                onPress={onViewFullHistory}
+                            >
+                                <Text style={styles.viewHistoryText}>
+                                    View Full History
+                                </Text>
+                            </TouchableOpacity>
+                        </>
+                    ) : (
+                        <View style={styles.emptyHistoryContainer}>
+                            <Text style={styles.emptyHistoryIcon}>📝</Text>
+                            <Text style={styles.emptyHistoryTitle}>No History Yet</Text>
+                            <Text style={styles.emptyHistoryText}>
+                                Complete a workout with this exercise to start tracking your progress.
+                            </Text>
+                        </View>
+                    )}
 
                     {/* Performance Stats */}
                     <Text style={styles.statsLabel}>PERFORMANCE</Text>
                     <View style={styles.statsRow}>
                         <StatCard
                             label="Personal Best"
-                            value={stats.personalBest}
-                            unit={stats.unit}
-                            highlight={true}
+                            value={hasRealHistory ? stats.personalBest : '—'}
+                            unit={hasRealHistory ? stats.unit : undefined}
+                            highlight={hasRealHistory}
                             style={styles.statCard}
                         />
                         <StatCard
                             label="Total Volume"
-                            value={formatVolume(stats.totalVolume)}
-                            unit={stats.unit}
-                            highlight={true}
+                            value={hasRealHistory ? formatVolume(stats.totalVolume) : '—'}
+                            unit={hasRealHistory ? stats.unit : undefined}
+                            highlight={hasRealHistory}
                             style={styles.statCard}
                         />
                     </View>
@@ -250,16 +300,6 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
         paddingTop: theme.spacing.large,
     },
-    title: {
-        fontSize: 28,
-        fontWeight: '800',
-        color: theme.colors.text,
-        letterSpacing: -0.5,
-        marginBottom: theme.spacing.medium,
-    },
-    titleHighlight: {
-        color: theme.colors.primary,
-    },
     tagsRow: {
         flexDirection: 'row',
         flexWrap: 'wrap',
@@ -303,6 +343,34 @@ const styles = StyleSheet.create({
         color: theme.colors.textMuted,
         textTransform: 'uppercase',
         letterSpacing: 0.5,
+    },
+    loadingContainer: {
+        padding: theme.spacing.xlarge,
+        alignItems: 'center',
+    },
+    emptyHistoryContainer: {
+        backgroundColor: theme.colors.surface,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: theme.colors.border,
+        padding: theme.spacing.xlarge,
+        alignItems: 'center',
+    },
+    emptyHistoryIcon: {
+        fontSize: 32,
+        marginBottom: 12,
+    },
+    emptyHistoryTitle: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: theme.colors.text,
+        marginBottom: 8,
+    },
+    emptyHistoryText: {
+        fontSize: 14,
+        color: theme.colors.textSecondary,
+        textAlign: 'center',
+        lineHeight: 20,
     },
     viewHistoryButton: {
         paddingVertical: 12,
