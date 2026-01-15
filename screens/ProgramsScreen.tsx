@@ -24,6 +24,14 @@ export const ProgramsScreen = () => {
     const setActiveProgram = useWorkoutStore((state) => state.setActiveProgram);
     const navigation = useNavigation<any>();
 
+    const sortedPrograms = React.useMemo(() => {
+        return [...programs].sort((a, b) => {
+            if (a.id === activeProgramId) return -1;
+            if (b.id === activeProgramId) return 1;
+            return 0; // Maintain default order for others
+        });
+    }, [programs, activeProgramId]);
+
     const handleSetActive = (id: string) => {
         setActiveProgram(id);
         navigation.navigate('Workouts');
@@ -120,7 +128,7 @@ export const ProgramsScreen = () => {
             <StatusBar barStyle="light-content" />
 
             <FlatList
-                data={programs}
+                data={sortedPrograms}
                 keyExtractor={(item) => item.id}
                 contentContainerStyle={styles.listContent}
                 renderItem={({ item }) => (
