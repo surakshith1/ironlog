@@ -1,7 +1,7 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { DesignSystemDemo } from '../screens/DesignSystemDemo';
+import { HomeScreen } from '../screens/HomeScreen';
 import { ProgramsScreen } from '../screens/ProgramsScreen';
 import { WorkoutsScreen } from '../screens/WorkoutsScreen';
 import { CurrentWorkoutScreen } from '../screens/CurrentWorkoutScreen';
@@ -105,7 +105,7 @@ export const MainNavigator = () => {
         >
             <Tab.Screen
                 name="Home"
-                component={DesignSystemDemo}
+                component={HomeScreen}
                 options={{
                     tabBarIcon: ({ color, size }) => <Home color={color} size={size} />,
                     tabBarLabel: 'Home',
